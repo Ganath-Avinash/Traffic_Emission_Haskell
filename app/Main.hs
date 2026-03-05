@@ -5,11 +5,29 @@ import EmissionCalculator
 
 main :: IO ()
 main = do
-    let paris = City "Paris" 2100000 1200000 2.3
+    putStrLn "=== Transport Emissions Calculator ==="
 
-    let total = totalEmission paris
-    let perCap = perCapitaEmission paris
+    putStrLn "Enter city name:"
+    cityName <- getLine
 
-    putStrLn "City: Paris"
+    putStrLn "Enter population:"
+    popInput <- getLine
+    let population = read popInput :: Int
+
+    putStrLn "Enter number of vehicles:"
+    vehInput <- getLine
+    let vehicles = read vehInput :: Int
+
+    putStrLn "Enter emission per vehicle:"
+    emInput <- getLine
+    let emission = read emInput :: Double
+
+    let city = City cityName population vehicles emission
+
+    let total = totalEmission city
+    let perCap = perCapitaEmission city
+
+    putStrLn "\n--- Emission Results ---"
+    putStrLn ("City: " ++ cityName)
     putStrLn ("Total Emission: " ++ show total)
     putStrLn ("Per Capita Emission: " ++ show perCap)
