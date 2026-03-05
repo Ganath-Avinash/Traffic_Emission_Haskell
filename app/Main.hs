@@ -12,17 +12,17 @@ main = do
 
     putStrLn "Enter population:"
     popInput <- getLine
-    let population = read popInput :: Int
+    let popVal = read popInput :: Int
 
     putStrLn "Enter number of vehicles:"
     vehInput <- getLine
-    let vehicles = read vehInput :: Int
+    let vehVal = read vehInput :: Int
 
     putStrLn "Enter emission per vehicle:"
     emInput <- getLine
     let emission = read emInput :: Double
 
-    let city = City cityName population vehicles emission
+    let city = City cityName popVal vehVal emission
 
     let total = totalEmission city
     let perCap = perCapitaEmission city

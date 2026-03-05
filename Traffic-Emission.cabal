@@ -64,15 +64,16 @@ executable Traffic-Emission
     -- Modules included in this executable, other than Main.
     -- other-modules:
     hs-source-dirs: app, src
+    other-modules:
+        Types
+        EmissionCalculator
+        Analysis
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.19.1.0
-
-    -- Directories containing source files.
-    hs-source-dirs:   app
 
     -- Base language which the package is written in.
     default-language: Haskell2010
