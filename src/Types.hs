@@ -1,8 +1,5 @@
 module Types where
 
-data City = City
-  { name :: String
-  , population :: Int
-  , vehicles :: Int
-  , emissionPerVehicle :: Double
-  } deriving Show
+type CityName = String
+type Year = Int
+type Mode = String

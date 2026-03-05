@@ -1,13 +1,8 @@
 module EmissionCalculator where
 
-import Types
+import Models
+import EmissionEngine
 
--- Calculate total emissions of a city
-totalEmission :: City -> Double
-totalEmission city =
-    fromIntegral (vehicles city) * emissionPerVehicle city
-
--- Calculate per capita emission
-perCapitaEmission :: City -> Double
-perCapitaEmission city =
-    totalEmission city / fromIntegral (population city)
+calculateCityCO2 :: String -> [TransportRecord] -> Double
+calculateCityCO2 c records =
+  sum [modeCO2 r | r <- records, city r == c]
