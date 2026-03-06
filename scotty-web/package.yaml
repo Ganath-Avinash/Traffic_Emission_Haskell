@@ -16,6 +16,7 @@ dependencies:
 - base >= 4.7 && < 5
 - scotty
 - text
+- bytestring
 - process
 
 ghc-options:
@@ -44,6 +45,7 @@ executables:
       - scotty-web
       - scotty
       - text
+      - bytestring
       - process
 
 tests:
@@ -58,5 +60,6 @@ tests:
       - scotty-web
       - scotty
       - text
+      - bytestring
       - process
       - base >= 4.7 && < 5

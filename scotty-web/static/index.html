@@ -3,1445 +3,1102 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TransportSense — Urban Emission Sensitivity Modeler</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<title>TransportSense — Urban Emission Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ── Reset & Root ── */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
-:root {
-  --bg:       #080c10;
-  --surface:  #0e1419;
-  --surface2: #141c24;
-  --border:   #1e2a36;
-  --border2:  #263344;
-  --text:     #e8edf2;
-  --muted:    #5a7080;
-  --dim:      #3a5060;
-  --green:    #2dd4a0;
-  --green2:   #1a9970;
-  --orange:   #f97316;
-  --red:      #ef4444;
-  --blue:     #38bdf8;
-  --yellow:   #fbbf24;
-  --purple:   #a78bfa;
-  --accent:   #2dd4a0;
-  --glow:     rgba(45,212,160,0.12);
+:root{
+  --ink:    #09100f;
+  --ink2:   #111a18;
+  --ink3:   #1a2724;
+  --edge:   #1f3330;
+  --edge2:  #2a4440;
+  --fog:    #3d6058;
+  --mist:   #6b9e94;
+  --pale:   #a8cec8;
+  --chalk:  #dff0ed;
+  --paper:  #f0f7f5;
+  --neon:   #00ffc8;
+  --neon2:  #00d4a8;
+  --neon3:  #007a60;
+  --amber:  #ffb347;
+  --ember:  #ff6b35;
+  --rose:   #ff4757;
+  --sky:    #45d9ff;
+  --violet: #c084fc;
+  --glow:   rgba(0,255,200,0.08);
+  --glow2:  rgba(0,255,200,0.15);
+  --shadow: rgba(0,0,0,0.6);
 }
 
-html { scroll-behavior: smooth; }
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--chalk);font-family:'DM Mono',monospace;font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden}
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Syne', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  min-height: 100vh;
-  overflow-x: hidden;
+/* ── grain overlay ── */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9998;opacity:0.4;
 }
 
-/* Scanline overlay */
-body::before {
-  content:'';
-  position:fixed; inset:0;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 2px,
-    rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
-  );
-  pointer-events:none; z-index:999;
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:var(--ink)}
+::-webkit-scrollbar-thumb{background:var(--neon3);border-radius:2px}
+
+/* ════════════════════════════════════
+   LOADING SCREEN
+════════════════════════════════════ */
+#loader{
+  position:fixed;inset:0;background:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2rem;z-index:9999;transition:opacity 0.8s ease;
+}
+#loader.out{opacity:0;pointer-events:none}
+.loader-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:4rem;letter-spacing:0.15em;
+  color:transparent;
+  background:linear-gradient(135deg,var(--neon),var(--sky));
+  -webkit-background-clip:text;background-clip:text;
+  animation:pulse 2s ease infinite;
+}
+@keyframes pulse{0%,100%{opacity:0.7}50%{opacity:1}}
+.loader-sub{font-size:0.6rem;letter-spacing:0.4em;color:var(--fog);text-transform:uppercase}
+.loader-track{width:240px;height:1px;background:var(--edge2);position:relative;overflow:hidden}
+.loader-fill{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,var(--neon),transparent);animation:sweep 1.2s ease infinite}
+@keyframes sweep{0%{left:-60%}100%{left:110%}}
+
+/* ════════════════════════════════════
+   LAYOUT
+════════════════════════════════════ */
+.shell{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--ink2);
+  border-right:1px solid var(--edge);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;
+  z-index:200;overflow-y:auto;
 }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-/* ── Sidebar Nav ── */
-.sidebar {
-  position: fixed; left: 0; top: 0; bottom: 0;
-  width: 220px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  z-index: 100;
-  padding: 0;
+.brand{
+  padding:2rem 1.5rem 1.5rem;
+  border-bottom:1px solid var(--edge);
+}
+.brand-tag{
+  font-size:0.52rem;letter-spacing:0.35em;
+  text-transform:uppercase;color:var(--neon);
+  margin-bottom:0.6rem;display:flex;align-items:center;gap:0.5rem;
+}
+.brand-tag::before{content:'';width:18px;height:1px;background:var(--neon);display:inline-block}
+.brand-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.9rem;letter-spacing:0.08em;
+  color:var(--chalk);line-height:1;
+}
+.brand-name span{color:var(--neon)}
+.brand-desc{
+  font-size:0.6rem;color:var(--fog);
+  letter-spacing:0.05em;margin-top:0.5rem;line-height:1.6;
 }
 
-.sidebar-logo {
-  padding: 1.5rem 1.5rem 1rem;
-  border-bottom: 1px solid var(--border);
+/* city+year controls */
+.controls-block{padding:1.25rem 1.5rem;border-bottom:1px solid var(--edge)}
+.ctrl-label{font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--fog);margin-bottom:0.5rem}
+.city-select{
+  width:100%;background:var(--ink3);border:1px solid var(--edge2);
+  color:var(--chalk);font-family:'DM Mono',monospace;font-size:0.75rem;
+  padding:0.5rem 0.75rem;border-radius:2px;cursor:pointer;outline:none;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300ffc8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 0.75rem center;
+}
+.city-select option{background:var(--ink3)}
+.year-pills{display:flex;gap:0.4rem;margin-top:0.75rem}
+.year-pill{
+  flex:1;padding:0.4rem;text-align:center;
+  background:transparent;border:1px solid var(--edge2);
+  color:var(--fog);font-family:'DM Mono',monospace;
+  font-size:0.65rem;cursor:pointer;border-radius:2px;
+  transition:all 0.2s;letter-spacing:0.1em;
+}
+.year-pill:hover{border-color:var(--neon3);color:var(--pale)}
+.year-pill.on{background:var(--glow2);border-color:var(--neon);color:var(--neon)}
+
+/* nav */
+.nav{padding:0.75rem 0}
+.nav-group-label{
+  font-size:0.48rem;letter-spacing:0.3em;text-transform:uppercase;
+  color:var(--edge2);padding:0.75rem 1.5rem 0.35rem;
+}
+.nav-btn{
+  display:flex;align-items:center;gap:0.75rem;
+  padding:0.6rem 1.5rem;
+  color:var(--fog);cursor:pointer;
+  transition:all 0.18s;font-size:0.72rem;
+  border-left:2px solid transparent;
+  letter-spacing:0.05em;user-select:none;
+}
+.nav-btn:hover{color:var(--pale);background:rgba(0,255,200,0.04)}
+.nav-btn.on{color:var(--neon);border-left-color:var(--neon);background:var(--glow)}
+.nav-icon{
+  width:20px;height:20px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.8rem;opacity:0.7;
+}
+.nav-btn.on .nav-icon{opacity:1}
+
+/* api badge */
+.api-badge{
+  margin:auto 1.5rem 1rem;
+  padding:0.5rem 0.75rem;
+  border:1px solid var(--neon3);
+  border-radius:2px;background:rgba(0,255,200,0.04);
+  font-size:0.5rem;letter-spacing:0.15em;
+  color:var(--neon3);text-align:center;line-height:1.8;
+}
+.api-badge strong{color:var(--neon);display:block;font-size:0.6rem}
+.api-dot{
+  display:inline-block;width:5px;height:5px;
+  border-radius:50%;background:var(--neon);
+  margin-right:0.4rem;
+  animation:blink 1.5s ease infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* ── MAIN CONTENT ── */
+.main{margin-left:240px;flex:1;min-height:100vh}
+.page{display:none;animation:fadeUp 0.35s ease both}
+.page.on{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* page header */
+.phead{
+  padding:2.5rem 3rem 2rem;
+  border-bottom:1px solid var(--edge);
+  display:flex;align-items:flex-end;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+  background:linear-gradient(180deg,rgba(0,255,200,0.03) 0%,transparent 100%);
+}
+.phead-left{}
+.phead-tag{font-size:0.52rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--neon);margin-bottom:0.4rem}
+.phead-title{
+  font-family:'Fraunces',serif;
+  font-size:clamp(1.8rem,3vw,2.8rem);
+  font-weight:300;line-height:1.05;
+  color:var(--chalk);
+}
+.phead-title em{font-style:italic;color:var(--neon)}
+.phead-badge{
+  font-size:0.58rem;letter-spacing:0.12em;
+  background:var(--glow2);border:1px solid var(--neon3);
+  color:var(--neon);padding:0.45rem 1rem;border-radius:2px;
+  white-space:nowrap;
 }
 
-.logo-mark {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--green);
-  margin-bottom: 0.4rem;
+.body-pad{padding:2.5rem 3rem}
+
+/* ════════════════════════════════════
+   STAT CARDS
+════════════════════════════════════ */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--edge);border:1px solid var(--edge);margin-bottom:2.5rem}
+.kpi{
+  background:var(--ink2);padding:1.5rem;
+  position:relative;overflow:hidden;
+  transition:background 0.2s;
+}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--neon3),transparent);
+  opacity:0;transition:opacity 0.3s;
+}
+.kpi:hover{background:var(--ink3)}
+.kpi:hover::before{opacity:1}
+.kpi-tag{font-size:0.5rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--fog);margin-bottom:0.75rem}
+.kpi-val{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2.6rem;letter-spacing:0.05em;
+  line-height:1;margin-bottom:0.3rem;
+  color:var(--chalk);
+}
+.kpi-val.g{color:var(--neon)}
+.kpi-val.w{color:var(--amber)}
+.kpi-val.r{color:var(--rose)}
+.kpi-unit{font-size:0.55rem;color:var(--fog);letter-spacing:0.1em}
+.kpi-delta{
+  margin-top:0.5rem;font-size:0.58rem;
+  display:inline-flex;align-items:center;gap:0.3rem;
+  padding:0.15rem 0.5rem;border-radius:2px;
+}
+.kpi-delta.up{background:rgba(0,255,200,0.1);color:var(--neon)}
+.kpi-delta.dn{background:rgba(255,71,87,0.1);color:var(--rose)}
+
+/* ════════════════════════════════════
+   CHART PANELS
+════════════════════════════════════ */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+.span2{grid-column:1/-1}
+
+.panel{
+  background:var(--ink2);border:1px solid var(--edge);
+  border-radius:3px;overflow:hidden;
+}
+.panel-head{
+  padding:1rem 1.25rem;border-bottom:1px solid var(--edge);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-title{font-size:0.75rem;font-weight:500;color:var(--pale);letter-spacing:0.05em}
+.panel-sub{font-size:0.55rem;color:var(--fog);letter-spacing:0.05em}
+.panel-tag{
+  font-size:0.48rem;letter-spacing:0.2em;text-transform:uppercase;
+  padding:0.2rem 0.5rem;border-radius:1px;
+  background:var(--glow);border:1px solid var(--neon3);color:var(--neon3);
+}
+.panel-body{padding:1.25rem;position:relative}
+.panel-body canvas{max-height:260px}
+
+/* ════════════════════════════════════
+   DATA TABLE
+════════════════════════════════════ */
+.data-table{width:100%;border-collapse:collapse;font-size:0.72rem}
+.data-table thead tr{border-bottom:1px solid var(--edge2)}
+.data-table th{
+  padding:0.75rem 1rem;text-align:left;
+  font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--fog);font-weight:400;white-space:nowrap;
+}
+.data-table td{padding:0.7rem 1rem;border-bottom:1px solid var(--edge)}
+.data-table tbody tr{transition:background 0.15s}
+.data-table tbody tr:hover td{background:rgba(0,255,200,0.04)}
+.data-table tbody tr:last-child td{border-bottom:none}
+
+.city-name-cell strong{color:var(--chalk);font-size:0.8rem}
+.mono{font-family:'DM Mono',monospace;color:var(--mist)}
+
+.bar-wrap{display:flex;align-items:center;gap:0.6rem}
+.bar-bg{flex:1;height:4px;background:var(--edge2);border-radius:2px;overflow:hidden;max-width:120px}
+.bar-fg{height:100%;border-radius:2px;transition:width 0.6s ease}
+.bar-fg.g{background:linear-gradient(90deg,var(--neon3),var(--neon))}
+.bar-fg.w{background:linear-gradient(90deg,#c87000,var(--amber))}
+.bar-fg.r{background:linear-gradient(90deg,#a00,var(--rose))}
+
+.badge{
+  display:inline-block;font-size:0.58rem;
+  padding:0.18rem 0.55rem;border-radius:2px;
+  font-family:'DM Mono',monospace;
+}
+.badge.g{background:rgba(0,255,200,0.12);color:var(--neon);border:1px solid var(--neon3)}
+.badge.w{background:rgba(255,179,71,0.12);color:var(--amber);border:1px solid #7a5500}
+.badge.r{background:rgba(255,71,87,0.12);color:var(--rose);border:1px solid #7a0010}
+
+/* ════════════════════════════════════
+   SENSITIVITY TABLE
+════════════════════════════════════ */
+.sens-table{width:100%;border-collapse:collapse;font-size:0.65rem;font-family:'DM Mono',monospace}
+.sens-table th{
+  padding:0.5rem 0.75rem;text-align:center;
+  color:var(--fog);font-weight:400;
+  border-bottom:1px solid var(--edge2);white-space:nowrap;
+}
+.sens-table td{
+  padding:0.45rem 0.75rem;text-align:center;
+  border:1px solid var(--edge);transition:all 0.15s;white-space:nowrap;cursor:default;
+}
+.sens-table tr th:first-child{text-align:left;color:var(--mist)}
+.sens-table td:hover{transform:scale(1.08);z-index:10;position:relative}
+.h-0{background:transparent;color:var(--edge2)}
+.h-g3{background:rgba(0,255,200,0.35);color:#00ffc8}
+.h-g2{background:rgba(0,255,200,0.2);color:#6ee7c7}
+.h-g1{background:rgba(0,255,200,0.08);color:var(--pale)}
+.h-r1{background:rgba(255,71,87,0.08);color:var(--chalk)}
+.h-r2{background:rgba(255,71,87,0.2);color:#fca5a5}
+.h-r3{background:rgba(255,71,87,0.35);color:#ff4757}
+
+/* ════════════════════════════════════
+   GLOBAL STAT CARDS (3-col)
+════════════════════════════════════ */
+.gstat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--edge);border:1px solid var(--edge);margin-bottom:2rem}
+.gstat{background:var(--ink2);padding:1.5rem}
+.gstat:hover{background:var(--ink3)}
+.gstat-num{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2.2rem;letter-spacing:0.05em;
+  color:var(--neon);line-height:1;margin-bottom:0.3rem;
+}
+.gstat-label{font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--fog);margin-bottom:0.5rem}
+.gstat-sub{font-size:0.58rem;color:var(--mist)}
+
+/* ════════════════════════════════════
+   ROADMAP
+════════════════════════════════════ */
+.roadmap{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--edge);margin-bottom:2rem}
+.rm-phase{padding:1.5rem;border-right:1px solid var(--edge);transition:background 0.2s;position:relative}
+.rm-phase:last-child{border-right:none}
+.rm-phase:hover{background:var(--ink3)}
+.rm-week{font-size:0.48rem;letter-spacing:0.2em;color:var(--neon);margin-bottom:0.5rem;text-transform:uppercase}
+.rm-name{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:var(--chalk)}
+.rm-list{list-style:none;font-size:0.6rem;color:var(--fog);line-height:2}
+.rm-list li::before{content:'→ ';color:var(--neon3)}
+
+.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--edge);border:1px solid var(--edge)}
+.mod{background:var(--ink2);padding:1.25rem;transition:background 0.2s}
+.mod:hover{background:var(--ink3)}
+.mod-path{font-size:0.55rem;color:var(--neon3);margin-bottom:0.35rem;letter-spacing:0.05em}
+.mod-name{font-size:0.85rem;font-weight:500;color:var(--pale);margin-bottom:0.35rem}
+.mod-desc{font-size:0.62rem;color:var(--fog);line-height:1.6;font-style:italic}
+
+/* contrib box */
+.contrib{
+  border:1px solid var(--neon3);background:var(--glow);
+  padding:1.75rem 2rem;margin-bottom:2rem;position:relative;border-radius:2px;
+}
+.contrib::before{
+  content:'CORE CONTRIBUTION';
+  position:absolute;top:-0.6rem;left:1.5rem;
+  background:var(--ink);padding:0 0.5rem;
+  font-size:0.48rem;letter-spacing:0.25em;color:var(--neon);
+}
+.contrib p{
+  font-family:'Fraunces',serif;font-size:1.05rem;
+  font-style:italic;line-height:1.75;color:var(--chalk);font-weight:300;
+}
+.contrib strong{font-style:normal;color:var(--neon)}
+
+/* error panel */
+.err-panel{
+  margin:2rem 3rem;padding:2rem;
+  background:rgba(255,71,87,0.06);
+  border:1px solid rgba(255,71,87,0.3);border-radius:3px;
+}
+.err-panel h3{color:var(--rose);font-family:'DM Mono',monospace;font-size:0.75rem;margin-bottom:0.75rem}
+.err-panel p{color:var(--fog);font-size:0.7rem;line-height:1.9}
+.err-panel code{color:var(--neon);background:var(--ink3);padding:0.1rem 0.4rem;border-radius:2px}
+
+/* section label */
+.section-label{
+  font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;
+  color:var(--fog);margin-bottom:1rem;
+  display:flex;align-items:center;gap:0.75rem;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--edge)}
+
+/* data source row */
+.datasource-row{
+  display:flex;align-items:center;gap:0.75rem;
+  font-size:0.55rem;color:var(--fog);letter-spacing:0.1em;
+  padding:0.75rem 0;margin-bottom:1.5rem;
+  border-bottom:1px solid var(--edge);
+}
+.datasource-row .tag{
+  background:var(--glow);border:1px solid var(--neon3);
+  color:var(--neon);padding:0.2rem 0.6rem;border-radius:2px;
+  font-size:0.5rem;letter-spacing:0.2em;
 }
 
-.logo-title {
-  font-family: 'Instrument Serif', serif;
-  font-size: 1.25rem;
-  line-height: 1.15;
-  color: var(--text);
-}
-
-.logo-title em { font-style: italic; color: var(--green); }
-
-.nav-section-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 1.25rem 1.5rem 0.5rem;
-}
-
-.nav-item {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.65rem 1.5rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.18s;
-  font-size: 0.82rem;
-  font-weight: 700;
-  border-left: 2px solid transparent;
-  letter-spacing: 0.02em;
-  user-select: none;
-}
-
-.nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
-
-.nav-item.active {
-  color: var(--green);
-  border-left-color: var(--green);
-  background: var(--glow);
-}
-
-.nav-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: currentColor; flex-shrink: 0;
-  opacity: 0.6;
-}
-
-.nav-item.active .nav-dot { opacity: 1; }
-
-.sidebar-footer {
-  margin-top: auto;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border);
-  font-family: 'DM Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--dim);
-  line-height: 1.6;
-}
-
-/* ── City Selector in Sidebar ── */
-.city-selector {
-  margin: 0 1rem 0;
-  padding: 0.75rem 1rem;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.city-selector label {
-  display: block;
-  font-family: 'DM Mono', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.4rem;
-}
-
-.city-selector select {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  font-family: 'Syne', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-}
-
-.city-selector select option { background: #1a2530; }
-
-/* ── Main Content ── */
-.main {
-  margin-left: 220px;
-  min-height: 100vh;
-  padding: 0;
-}
-
-/* ── Pages ── */
-.page { display: none; }
-.page.active { display: block; }
-
-/* ── Page Header ── */
-.page-header {
-  padding: 2rem 2.5rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: flex-end; justify-content: space-between;
-  flex-wrap: wrap; gap: 1rem;
-}
-
-.page-eyebrow {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--green);
-  margin-bottom: 0.4rem;
-}
-
-.page-title {
-  font-family: 'Instrument Serif', serif;
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  font-weight: 400;
-  line-height: 1.1;
-  color: var(--text);
-}
-
-.page-title em { font-style: italic; color: var(--green); }
-
-.city-badge {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  background: var(--glow);
-  border: 1px solid var(--green2);
-  color: var(--green);
-  padding: 0.4rem 0.9rem;
-  border-radius: 2px;
-}
-
-/* ── Grid layouts ── */
-.content-pad { padding: 2rem 2.5rem; }
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: var(--surface);
-  padding: 1.25rem 1.5rem;
-  transition: background 0.2s;
-}
-
-.stat-card:hover { background: var(--surface2); }
-
-.stat-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.5rem;
-}
-
-.stat-value {
-  font-family: 'Instrument Serif', serif;
-  font-size: 2rem;
-  line-height: 1;
-  color: var(--text);
-  margin-bottom: 0.25rem;
-}
-
-.stat-value.good { color: var(--green); }
-.stat-value.warn { color: var(--orange); }
-.stat-value.bad  { color: var(--red); }
-
-.stat-sub {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.62rem;
-  color: var(--dim);
-}
-
-/* ── Chart panels ── */
-.charts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.chart-wide { grid-column: 1 / -1; }
-
-.chart-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.chart-panel-header {
-  padding: 1rem 1.25rem 0.75rem;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-
-.chart-panel-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.02em;
-}
-
-.chart-panel-sub {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--muted);
-}
-
-.chart-body {
-  padding: 1.25rem;
-  position: relative;
-}
-
-.chart-body canvas { max-height: 280px; }
-
-/* ── Sensitivity Matrix ── */
-.matrix-grid {
-  display: grid;
-  overflow-x: auto;
-  padding: 1.25rem;
-}
-
-.matrix-table {
-  border-collapse: collapse;
-  font-family: 'DM Mono', monospace;
-  font-size: 0.65rem;
-  width: 100%;
-}
-
-.matrix-table th {
-  padding: 0.5rem 0.75rem;
-  text-align: center;
-  color: var(--muted);
-  font-weight: 400;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.matrix-table td {
-  padding: 0.45rem 0.75rem;
-  text-align: center;
-  border: 1px solid var(--border);
-  transition: all 0.15s;
-  cursor: default;
-  white-space: nowrap;
-}
-
-.matrix-table tr th:first-child {
-  text-align: right;
-  color: var(--muted);
-}
-
-.matrix-table td:hover { transform: scale(1.05); z-index: 10; position: relative; }
-
-/* Heat colors */
-.heat-strong-neg { background: rgba(239,68,68,0.35); color: #fca5a5; }
-.heat-med-neg    { background: rgba(239,68,68,0.2);  color: #fca5a5; }
-.heat-light-neg  { background: rgba(239,68,68,0.08); color: var(--text); }
-.heat-zero       { background: transparent; color: var(--dim); }
-.heat-light-pos  { background: rgba(45,212,160,0.08); color: var(--text); }
-.heat-med-pos    { background: rgba(45,212,160,0.2);  color: #6ee7c7; }
-.heat-strong-pos { background: rgba(45,212,160,0.35); color: #6ee7c7; }
-
-/* ── Scenario Controls ── */
-.scenario-controls {
-  display: flex; flex-wrap: wrap; gap: 0.6rem;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.scenario-toggle {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.05em;
-  padding: 0.35rem 0.85rem;
-  border-radius: 2px;
-  border: 1px solid var(--border2);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.18s;
-}
-
-.scenario-toggle.active {
-  background: var(--glow);
-  border-color: var(--green2);
-  color: var(--green);
-}
-
-/* ── Slider ── */
-.slider-row {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.slider-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.62rem;
-  color: var(--muted);
-  white-space: nowrap;
-  min-width: 160px;
-}
-
-input[type=range] {
-  flex: 1;
-  -webkit-appearance: none;
-  height: 2px;
-  background: var(--border2);
-  border-radius: 1px;
-  outline: none;
-}
-
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: var(--green);
-  cursor: pointer;
-  box-shadow: 0 0 8px var(--glow);
-}
-
-.slider-value {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.72rem;
-  color: var(--green);
-  min-width: 36px;
-  text-align: right;
-}
-
-/* ── Roadmap ── */
-.roadmap-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0;
-  border: 1px solid var(--border);
-  margin-bottom: 2rem;
-}
-
-.roadmap-phase {
-  padding: 1.5rem 1.25rem;
-  border-right: 1px solid var(--border);
-  position: relative;
-  transition: background 0.2s;
-}
-
-.roadmap-phase:last-child { border-right: none; }
-.roadmap-phase:hover { background: var(--surface2); }
-
-.phase-week {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  color: var(--green);
-  margin-bottom: 0.5rem;
-}
-
-.phase-name {
-  font-size: 0.88rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  line-height: 1.3;
-}
-
-.phase-items {
-  list-style: none;
-  font-family: 'DM Mono', monospace;
-  font-size: 0.62rem;
-  color: var(--muted);
-  line-height: 2;
-}
-
-.phase-items li::before { content: '→ '; color: var(--green); }
-
-.module-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  margin-bottom: 2rem;
-}
-
-.module-card {
-  background: var(--surface);
-  padding: 1.25rem;
-  transition: background 0.2s;
-}
-
-.module-card:hover { background: var(--surface2); }
-
-.module-path {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.58rem;
-  color: var(--green);
-  margin-bottom: 0.4rem;
-}
-
-.module-name {
-  font-size: 0.88rem;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
-}
-
-.module-desc {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-style: italic;
-  line-height: 1.5;
-}
-
-/* ── Contribution box ── */
-.contrib-box {
-  border: 1px solid var(--green2);
-  background: var(--glow);
-  padding: 1.5rem 2rem;
-  border-radius: 4px;
-  margin-bottom: 2rem;
-  position: relative;
-}
-
-.contrib-box::before {
-  content: 'CORE CONTRIBUTION';
-  position: absolute; top: -0.55rem; left: 1.5rem;
-  background: var(--bg);
-  padding: 0 0.5rem;
-  font-family: 'DM Mono', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  color: var(--green);
-}
-
-.contrib-box p {
-  font-family: 'Instrument Serif', serif;
-  font-size: 1.05rem;
-  font-style: italic;
-  line-height: 1.7;
-  color: var(--text);
-}
-
-.contrib-box strong { font-style: normal; color: var(--green); }
-
-/* ── Comparison Table ── */
-.comparison-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-  margin-bottom: 2rem;
-}
-
-.comparison-table th {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 2px solid var(--border);
-  font-family: 'DM Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.comparison-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.82rem;
-}
-
-.comparison-table tr:hover td { background: var(--surface2); }
-
-.bar-cell { display: flex; align-items: center; gap: 0.75rem; }
-
-.bar-inner {
-  height: 6px; border-radius: 3px;
-  background: var(--green2);
-  transition: width 0.6s ease;
-  min-width: 2px;
-}
-
-.bar-inner.bad { background: var(--red); }
-.bar-inner.warn { background: var(--orange); }
-
-.pct-badge {
-  font-family: 'DM Mono', monospace;
-  font-size: 0.65rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 2px;
-}
-
-.pct-badge.good { background: rgba(45,212,160,0.15); color: var(--green); }
-.pct-badge.bad  { background: rgba(239,68,68,0.15); color: var(--red); }
-
-/* ── Animations ── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.page.active { animation: fadeIn 0.3s ease both; }
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .sidebar { width: 60px; }
-  .sidebar-logo, .nav-section-label, .nav-item span,
-  .city-selector label, .city-selector select,
-  .sidebar-footer { display: none; }
-  .nav-item { justify-content: center; padding: 0.75rem; }
-  .nav-dot { width: 8px; height: 8px; }
-  .main { margin-left: 60px; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .charts-grid { grid-template-columns: 1fr; }
-  .roadmap-grid { grid-template-columns: 1fr; }
-  .module-grid  { grid-template-columns: 1fr; }
+@media(max-width:960px){
+  .sidebar{width:56px}
+  .brand,.brand-desc,.controls-block,.nav-btn span,.api-badge,.nav-group-label{display:none}
+  .nav-btn{justify-content:center;padding:0.75rem}
+  .nav-icon{opacity:1}
+  .main{margin-left:56px}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .roadmap{grid-template-columns:1fr}
+  .module-grid{grid-template-columns:1fr}
+  .gstat-grid{grid-template-columns:1fr}
+  .body-pad{padding:1.5rem}
+  .phead{padding:1.5rem}
 }
 </style>
 </head>
 <body>
 
-<!-- ─────────── SIDEBAR ─────────── -->
+<!-- ══ LOADER ══ -->
+<div id="loader">
+  <div class="loader-logo">TransportSense</div>
+  <div class="loader-sub">Fetching data from Scotty /analysis</div>
+  <div class="loader-track"><div class="loader-fill"></div></div>
+</div>
+
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
 <nav class="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-mark">λ TransportSense</div>
-    <div class="logo-title">Urban Emission<br><em>Sensitivity</em><br>Modeler</div>
+  <div class="brand">
+    <div class="brand-tag">Urban Intelligence</div>
+    <div class="brand-name">Transport<span>Sense</span></div>
+    <div class="brand-desc">Real-time emission analysis<br>powered by Haskell + Scotty</div>
   </div>
 
-  <div class="nav-section-label">Analysis</div>
-  <div class="nav-item active" onclick="showPage('dashboard',this)">
-    <div class="nav-dot"></div><span>Dashboard</span>
-  </div>
-  <div class="nav-item" onclick="showPage('scenarios',this)">
-    <div class="nav-dot"></div><span>Scenarios</span>
-  </div>
-  <div class="nav-item" onclick="showPage('sensitivity',this)">
-    <div class="nav-dot"></div><span>Sensitivity</span>
-  </div>
-  <div class="nav-item" onclick="showPage('comparison',this)">
-    <div class="nav-dot"></div><span>City Compare</span>
+  <div class="controls-block">
+    <div class="ctrl-label">Active City</div>
+    <select class="city-select" id="citySelect" onchange="switchCity(this.value)"></select>
+    <div class="year-pills">
+      <button class="year-pill on" onclick="switchYear(2015,this)">2015</button>
+      <button class="year-pill" onclick="switchYear(2020,this)">2020</button>
+    </div>
   </div>
 
-  <div class="nav-section-label">Project</div>
-  <div class="nav-item" onclick="showPage('roadmap',this)">
-    <div class="nav-dot"></div><span>Roadmap</span>
+  <div class="nav">
+    <div class="nav-group-label">Analysis</div>
+    <div class="nav-btn on" onclick="nav('dashboard',this)"><span class="nav-icon">◈</span><span>Dashboard</span></div>
+    <div class="nav-btn" onclick="nav('globalstats',this)"><span class="nav-icon">⊞</span><span>Global Stats</span></div>
+    <div class="nav-btn" onclick="nav('sensitivity',this)"><span class="nav-icon">⊛</span><span>Sensitivity</span></div>
+    <div class="nav-btn" onclick="nav('comparison',this)"><span class="nav-icon">≋</span><span>City Compare</span></div>
+    <div class="nav-btn" onclick="nav('modalsplit',this)"><span class="nav-icon">⊿</span><span>Modal Split</span></div>
+    <div class="nav-group-label">Project</div>
+    <div class="nav-btn" onclick="nav('roadmap',this)"><span class="nav-icon">⊡</span><span>Roadmap</span></div>
   </div>
 
-  <div class="city-selector" style="margin-top:0.5rem">
-    <label>Active City</label>
-    <select id="citySelect" onchange="switchCity(this.value)">
-      <option value="mumbai">Mumbai, India</option>
-      <option value="berlin">Berlin, Germany</option>
-      <option value="nyc">New York City, USA</option>
-      <option value="amsterdam">Amsterdam, NL</option>
-      <option value="nairobi">Nairobi, Kenya</option>
-      <option value="bogota">Bogotá, Colombia</option>
-    </select>
-  </div>
-
-  <div class="sidebar-footer">
-    Haskell Project<br>
-    Transport Emissions<br>
-    Sensitivity Model<br><br>
-    v0.1.0 · 2026
+  <div class="api-badge">
+    <strong><span class="api-dot"></span>LIVE · Scotty API</strong>
+    GET /analysis<br>analysis.json
   </div>
 </nav>
 
-<!-- ─────────── MAIN ─────────── -->
+<!-- ══ MAIN ══ -->
 <div class="main">
 
-  <!-- ══ PAGE: DASHBOARD ══ -->
-  <div class="page active" id="page-dashboard">
-    <div class="page-header">
-      <div>
-        <div class="page-eyebrow">01 · Overview</div>
-        <div class="page-title">Emission <em>Dashboard</em></div>
-      </div>
-      <div class="city-badge" id="dash-city-badge">Mumbai, India</div>
+<!-- ▸ DASHBOARD -->
+<div class="page on" id="page-dashboard">
+  <div class="phead">
+    <div class="phead-left">
+      <div class="phead-tag">01 · City Overview</div>
+      <div class="phead-title">Emission <em>Dashboard</em></div>
     </div>
-    <div class="content-pad">
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-label">Baseline Emission</div>
-          <div class="stat-value warn" id="stat-baseline">1.84</div>
-          <div class="stat-sub">kg CO₂ / person / day</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">City Population</div>
-          <div class="stat-value" id="stat-pop">20.7M</div>
-          <div class="stat-sub">residents</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Annual City Total</div>
-          <div class="stat-value bad" id="stat-annual">13.9</div>
-          <div class="stat-sub">Mt CO₂ / year</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Top Mode Share</div>
-          <div class="stat-value good" id="stat-topmode">Rail 30%</div>
-          <div class="stat-sub">highest modal share</div>
-        </div>
-      </div>
+    <div class="phead-badge" id="dash-badge">—</div>
+  </div>
+  <div class="body-pad">
+    <div class="datasource-row">
+      <span class="tag">analysis.json</span>
+      <span>Source: Scotty GET /analysis · Cities array · Real-world transport data</span>
+    </div>
 
-      <div class="charts-grid">
-        <div class="chart-panel">
-          <div class="chart-panel-header">
-            <div class="chart-panel-title">Modal Share Distribution</div>
-            <div class="chart-panel-sub">% of daily trips</div>
-          </div>
-          <div class="chart-body">
-            <canvas id="chart-modal-share"></canvas>
-          </div>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-tag">CO₂ per Capita / Day</div>
+        <div class="kpi-val" id="kv-co2">—</div>
+        <div class="kpi-unit">kg CO₂ / person / day</div>
+        <div id="kd-co2"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-tag">City Population</div>
+        <div class="kpi-val" id="kv-pop">—</div>
+        <div class="kpi-unit">residents</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-tag">Annual CO₂ Total</div>
+        <div class="kpi-val" id="kv-annual">—</div>
+        <div class="kpi-unit">tonnes CO₂ / year</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-tag">Green Score</div>
+        <div class="kpi-val" id="kv-green">—</div>
+        <div class="kpi-unit">sustainability index · /100</div>
+        <div id="kd-green"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Modal Share Distribution</div><div class="panel-sub">modalSplit[ ] · % of daily trips by mode</div></div>
+          <div class="panel-tag">LIVE</div>
         </div>
-        <div class="chart-panel">
-          <div class="chart-panel-header">
-            <div class="chart-panel-title">Emission Breakdown by Mode</div>
-            <div class="chart-panel-sub">kg CO₂ / person / day</div>
-          </div>
-          <div class="chart-body">
-            <canvas id="chart-modal-emission"></canvas>
-          </div>
+        <div class="panel-body"><canvas id="ch-modal"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Sustainability Radar</div><div class="panel-sub">greenScore · sustainabilityIndex · fossilFuelShare · renewableProxy</div></div>
         </div>
-        <div class="chart-panel chart-wide">
-          <div class="chart-panel-header">
-            <div class="chart-panel-title">Emission Factor by Mode</div>
-            <div class="chart-panel-sub">kg CO₂-eq per passenger-km (source: EEA 2023)</div>
-          </div>
-          <div class="chart-body">
-            <canvas id="chart-factors" style="max-height:200px"></canvas>
-          </div>
-        </div>
+        <div class="panel-body"><canvas id="ch-radar"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Fossil vs Renewable</div><div class="panel-sub">fossilFuelShare · renewableProxy</div></div></div>
+        <div class="panel-body"><canvas id="ch-fossil"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Motorisation Rate</div><div class="panel-sub">motorisationRate · greenMobilityIndex</div></div></div>
+        <div class="panel-body"><canvas id="ch-motor"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">NOₓ &amp; PM10 Pollution</div><div class="panel-sub">noxPerCapitaDay · pm10PerCapitaDay</div></div></div>
+        <div class="panel-body"><canvas id="ch-air"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel span2" style="margin-bottom:0">
+      <div class="panel-head"><div><div class="panel-title">All Key Indices</div><div class="panel-sub">energyMJPerCapitaDay · greenScore · sustainabilityIndex · greenMobilityIndex · energySavingPotential</div></div></div>
+      <div class="panel-body"><canvas id="ch-indices" style="max-height:180px"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ▸ GLOBAL STATS -->
+<div class="page" id="page-globalstats">
+  <div class="phead">
+    <div class="phead-left">
+      <div class="phead-tag">02 · World View</div>
+      <div class="phead-title">Global <em>Statistics</em></div>
+    </div>
+  </div>
+  <div class="body-pad">
+    <div class="datasource-row">
+      <span class="tag">analysis.json → globalStats</span>
+      <span>co2Stats · greenStats · populationWeightedCO2 · continents</span>
+    </div>
+    <div class="gstat-grid" id="gstat-cards"></div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">CO₂ by City — Selected Year</div><div class="panel-sub">co2PerCapitaDay · sorted descending</div></div><div class="panel-tag" id="gstat-year-tag">2015</div></div>
+        <div class="panel-body"><canvas id="ch-co2dist"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Green Score Ranking</div><div class="panel-sub">greenScore · all cities</div></div></div>
+        <div class="panel-body"><canvas id="ch-greendist"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">CO₂ Trend: 2015 → 2020</div><div class="panel-sub">co2PerCapitaDay reduction across all 8 cities</div></div><div class="panel-tag">TREND</div></div>
+      <div class="panel-body"><canvas id="ch-trend" style="max-height:220px"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ▸ SENSITIVITY -->
+<div class="page" id="page-sensitivity">
+  <div class="phead">
+    <div class="phead-left">
+      <div class="phead-tag">03 · Sensitivity Analysis</div>
+      <div class="phead-title">Mode <em>Impact Matrix</em></div>
+    </div>
+    <div class="phead-badge" id="sens-badge">—</div>
+  </div>
+  <div class="body-pad">
+    <div class="datasource-row">
+      <span class="tag">analysis.json → cities[].modalSplit</span>
+      <span>Estimated CO₂ contribution per mode = share% × co2PerCapitaDay</span>
+    </div>
+    <div class="panel" style="margin-bottom:1.5rem">
+      <div class="panel-head">
+        <div><div class="panel-title">Mode Sensitivity Table</div><div class="panel-sub">Fossil modes flagged · Green = emission-reducing</div></div>
+        <div class="panel-tag">MATRIX</div>
+      </div>
+      <div style="overflow-x:auto;padding:1.25rem" id="sens-matrix"></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">CO₂ Contribution by Mode</div><div class="panel-sub">share × city CO₂ per capita</div></div></div>
+        <div class="panel-body"><canvas id="ch-gradient"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Modal Share Shift 2015→2020</div><div class="panel-sub">Green = improvement · Red = regression</div></div></div>
+        <div class="panel-body"><canvas id="ch-shift"></canvas></div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ══ PAGE: SCENARIOS ══ -->
-  <div class="page" id="page-scenarios">
-    <div class="page-header">
-      <div>
-        <div class="page-eyebrow">02 · Policy Analysis</div>
-        <div class="page-title">Scenario <em>Explorer</em></div>
-      </div>
-      <div class="city-badge" id="scen-city-badge">Mumbai, India</div>
+<!-- ▸ COMPARISON -->
+<div class="page" id="page-comparison">
+  <div class="phead">
+    <div class="phead-left">
+      <div class="phead-tag">04 · Cross-City</div>
+      <div class="phead-title">City <em>Comparison</em></div>
     </div>
-    <div class="content-pad">
-      <div class="chart-panel" style="margin-bottom:1.5rem">
-        <div class="scenario-controls" id="scenario-toggles"></div>
-        <div class="chart-body">
-          <canvas id="chart-scenarios" style="max-height:320px"></canvas>
-        </div>
-      </div>
-
-      <div class="chart-panel chart-wide" style="margin-bottom:1.5rem">
-        <div class="chart-panel-header">
-          <div class="chart-panel-title">Emissions Timeline Projection</div>
-          <div class="chart-panel-sub">2024 → 2040 · phased scenario</div>
-        </div>
-        <div class="slider-row">
-          <div class="slider-label">Shift intensity (%/yr)</div>
-          <input type="range" id="shiftSlider" min="1" max="10" value="4" oninput="updateTimeline(this.value)">
-          <div class="slider-value" id="shiftVal">4%</div>
-        </div>
-        <div class="chart-body">
-          <canvas id="chart-timeline" style="max-height:280px"></canvas>
-        </div>
-      </div>
-
-      <div class="chart-panel">
-        <div class="chart-panel-header">
-          <div class="chart-panel-title">Annual CO₂ Savings by Scenario</div>
-          <div class="chart-panel-sub">thousand tonnes CO₂ / year</div>
-        </div>
-        <div class="chart-body">
-          <canvas id="chart-savings" style="max-height:240px"></canvas>
-        </div>
+    <div class="phead-badge" id="comp-year-badge">Year: 2015</div>
+  </div>
+  <div class="body-pad">
+    <div class="datasource-row">
+      <span class="tag">analysis.json → cities[ ]</span>
+      <span>co2PerCapitaDay · greenScore · fossilFuelShare · greenMobilityIndex · annualCO2Tonnes</span>
+    </div>
+    <div class="panel" style="margin-bottom:1.5rem">
+      <div class="panel-head"><div><div class="panel-title">CO₂ Per Capita — All 8 Cities</div><div class="panel-sub">kg CO₂ / person / day · colour coded by severity</div></div></div>
+      <div class="panel-body"><canvas id="ch-compare" style="max-height:260px"></canvas></div>
+    </div>
+    <div class="section-label">Full Data Table</div>
+    <div class="panel">
+      <div class="panel-body" style="padding:0;overflow-x:auto">
+        <table class="data-table" id="city-table"></table>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ══ PAGE: SENSITIVITY ══ -->
-  <div class="page" id="page-sensitivity">
-    <div class="page-header">
-      <div>
-        <div class="page-eyebrow">03 · Sensitivity Analysis</div>
-        <div class="page-title">Shift <em>Impact Matrix</em></div>
-      </div>
-      <div class="city-badge" id="sens-city-badge">Mumbai, India</div>
+<!-- ▸ MODAL SPLIT -->
+<div class="page" id="page-modalsplit">
+  <div class="phead">
+    <div class="phead-left">
+      <div class="phead-tag">05 · Transport Modes</div>
+      <div class="phead-title">Modal <em>Split Analysis</em></div>
     </div>
-    <div class="content-pad">
-      <div class="chart-panel" style="margin-bottom:1.5rem">
-        <div class="chart-panel-header">
-          <div class="chart-panel-title">Sensitivity Matrix — Emission Delta (kg CO₂/person/day per 10% shift)</div>
-          <div class="chart-panel-sub">Rows = FROM mode · Cols = TO mode · Green = reduction · Red = increase</div>
-        </div>
-        <div class="matrix-grid" id="sensitivity-matrix"></div>
+  </div>
+  <div class="body-pad">
+    <div class="datasource-row">
+      <span class="tag">analysis.json → modalSplitRankings</span>
+      <span>Car · Rail · ElectricCar · Bus · Cycling · Walking — ranked by share</span>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Car Share Rankings</div><div class="panel-sub">modalSplitRankings.Car · top 10</div></div><div class="panel-tag" style="border-color:#7a0010;color:var(--rose)">HIGH EMISSION</div></div>
+        <div class="panel-body"><canvas id="ch-car"></canvas></div>
       </div>
-
-      <div class="charts-grid">
-        <div class="chart-panel">
-          <div class="chart-panel-header">
-            <div class="chart-panel-title">Emission Gradient</div>
-            <div class="chart-panel-sub">∂E/∂share per mode</div>
-          </div>
-          <div class="chart-body">
-            <canvas id="chart-gradient" style="max-height:260px"></canvas>
-          </div>
-        </div>
-        <div class="chart-panel">
-          <div class="chart-panel-header">
-            <div class="chart-panel-title">Top 6 Highest-Impact Shifts</div>
-            <div class="chart-panel-sub">absolute kg CO₂ change</div>
-          </div>
-          <div class="chart-body">
-            <canvas id="chart-top-shifts" style="max-height:260px"></canvas>
-          </div>
-        </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Rail Share Rankings</div><div class="panel-sub">modalSplitRankings.Rail · top 10</div></div><div class="panel-tag">GREEN</div></div>
+        <div class="panel-body"><canvas id="ch-rail"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Green Mode Composite</div><div class="panel-sub">Walking + Cycling + Rail · selected year</div></div></div>
+        <div class="panel-body"><canvas id="ch-greenmode"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Electric Vehicle Adoption</div><div class="panel-sub">modalSplitRankings.ElectricCar · ranked</div></div><div class="panel-tag" style="border-color:#005a7a;color:var(--sky)">EV</div></div>
+        <div class="panel-body"><canvas id="ch-ev"></canvas></div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ══ PAGE: COMPARISON ══ -->
-  <div class="page" id="page-comparison">
-    <div class="page-header">
-      <div>
-        <div class="page-eyebrow">04 · Cross-City</div>
-        <div class="page-title">City <em>Comparison</em></div>
-      </div>
-    </div>
-    <div class="content-pad">
-      <div class="chart-panel chart-wide" style="margin-bottom:1.5rem">
-        <div class="chart-panel-header">
-          <div class="chart-panel-title">Baseline Emissions — All Cities</div>
-          <div class="chart-panel-sub">kg CO₂ / person / day</div>
-        </div>
-        <div class="chart-body">
-          <canvas id="chart-city-compare" style="max-height:280px"></canvas>
-        </div>
-      </div>
-      <div class="comparison-table-wrap">
-        <table class="comparison-table" id="city-table"></table>
-      </div>
+<!-- ▸ ROADMAP -->
+<div class="page" id="page-roadmap">
+  <div class="phead">
+    <div class="phead-left">
+      <div class="phead-tag">06 · Project</div>
+      <div class="phead-title">Development <em>Roadmap</em></div>
     </div>
   </div>
-
-  <!-- ══ PAGE: ROADMAP ══ -->
-  <div class="page" id="page-roadmap">
-    <div class="page-header">
-      <div>
-        <div class="page-eyebrow">05 · Project</div>
-        <div class="page-title">Development <em>Roadmap</em></div>
-      </div>
+  <div class="body-pad">
+    <div class="contrib">
+      <p>Urban mobility shifts form a <strong>composable monoid of higher-order functions</strong>, enabling type-safe, reproducible sensitivity analysis of transport emissions across policy scenarios — a formulation absent from existing transport modeling literature.</p>
     </div>
-    <div class="content-pad">
-      <div class="contrib-box">
-        <p>Urban mobility shifts form a <strong>composable monoid of higher-order functions</strong>, enabling type-safe, reproducible sensitivity analysis of transport emissions across policy scenarios — a formulation absent from existing transport modeling literature.</p>
-      </div>
-
-      <div class="roadmap-grid">
-        <div class="roadmap-phase">
-          <div class="phase-week">WEEKS 1–2</div>
-          <div class="phase-name">Core Domain Model</div>
-          <ul class="phase-items">
-            <li>Newtype-safe units</li>
-            <li>TransportMode ADT</li>
-            <li>MobilityProfile</li>
-            <li>EmissionFactors</li>
-            <li>Validation layer</li>
-          </ul>
-        </div>
-        <div class="roadmap-phase">
-          <div class="phase-week">WEEKS 2–3</div>
-          <div class="phase-name">Shift Algebra</div>
-          <ul class="phase-items">
-            <li>MobilityShift type</li>
-            <li>Primitive shifts</li>
-            <li>Monoid composition</li>
-            <li>Policy DSL</li>
-            <li>Conditional shifts</li>
-          </ul>
-        </div>
-        <div class="roadmap-phase">
-          <div class="phase-week">WEEKS 3–4</div>
-          <div class="phase-name">Sensitivity Engine</div>
-          <ul class="phase-items">
-            <li>emissionDelta</li>
-            <li>elasticity HOF</li>
-            <li>Sensitivity matrix</li>
-            <li>Gradient analysis</li>
-            <li>Monte Carlo</li>
-          </ul>
-        </div>
-        <div class="roadmap-phase">
-          <div class="phase-week">WEEKS 4–5</div>
-          <div class="phase-name">CLI + Data</div>
-          <ul class="phase-items">
-            <li>6 real cities</li>
-            <li>optparse-applicative</li>
-            <li>JSON/CSV export</li>
-            <li>QuickCheck tests</li>
-            <li>This website</li>
-          </ul>
-        </div>
-        <div class="roadmap-phase">
-          <div class="phase-week">WEEKS 6–8</div>
-          <div class="phase-name">Paper</div>
-          <ul class="phase-items">
-            <li>Case studies ×3</li>
-            <li>Monoid proof</li>
-            <li>Results figures</li>
-            <li>Related work</li>
-            <li>Submission</li>
-          </ul>
-        </div>
-      </div>
-
-      <div style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Haskell Module Architecture</div>
-      <div class="module-grid">
-        <div class="module-card">
-          <div class="module-path">Domain/Types.hs</div>
-          <div class="module-name">Types</div>
-          <div class="module-desc">Newtype-wrapped units: EmissionFactor, Distance, Population, TransportMode ADT</div>
-        </div>
-        <div class="module-card">
-          <div class="module-path">Domain/Shifts.hs</div>
-          <div class="module-name">Shifts ⭐</div>
-          <div class="module-desc">MobilityShift as composable function — the paper's theoretical core. Monoid under composition.</div>
-        </div>
-        <div class="module-card">
-          <div class="module-path">Analysis/Sensitivity.hs</div>
-          <div class="module-name">Sensitivity</div>
-          <div class="module-desc">emissionDelta, elasticity, sensitivity matrix, emissionGradient — all higher-order</div>
-        </div>
-        <div class="module-card">
-          <div class="module-path">Analysis/MonteCarlo.hs</div>
-          <div class="module-name">Monte Carlo</div>
-          <div class="module-desc">Stochastic uncertainty via random sampling of emission factors and modal shares</div>
-        </div>
-        <div class="module-card">
-          <div class="module-path">Analysis/Scenario.hs</div>
-          <div class="module-name">Scenarios</div>
-          <div class="module-desc">Recursive ADT DSL for composing policy packages and timeline projections</div>
-        </div>
-        <div class="module-card">
-          <div class="module-path">Data/Cities.hs</div>
-          <div class="module-name">Cities</div>
-          <div class="module-desc">Real-world baselines: Mumbai, Berlin, NYC, Amsterdam, Nairobi, Bogotá</div>
-        </div>
-      </div>
+    <div class="section-label">Development Timeline</div>
+    <div class="roadmap" style="margin-bottom:2rem">
+      <div class="rm-phase"><div class="rm-week">Weeks 1–2</div><div class="rm-name">Core Model</div><ul class="rm-list"><li>Newtype-safe units</li><li>TransportMode ADT</li><li>MobilityProfile</li><li>EmissionFactors</li><li>Validation layer</li></ul></div>
+      <div class="rm-phase"><div class="rm-week">Weeks 2–3</div><div class="rm-name">Shift Algebra</div><ul class="rm-list"><li>MobilityShift type</li><li>Primitive shifts</li><li>Monoid composition</li><li>Policy DSL</li><li>Conditional shifts</li></ul></div>
+      <div class="rm-phase"><div class="rm-week">Weeks 3–4</div><div class="rm-name">Sensitivity</div><ul class="rm-list"><li>emissionDelta</li><li>elasticity HOF</li><li>Sensitivity matrix</li><li>Gradient analysis</li><li>Monte Carlo</li></ul></div>
+      <div class="rm-phase"><div class="rm-week">Weeks 4–5</div><div class="rm-name">CLI + Scotty</div><ul class="rm-list"><li>8 real cities</li><li>analysis.json export</li><li>GET /analysis API</li><li>QuickCheck tests</li><li>This dashboard</li></ul></div>
+      <div class="rm-phase"><div class="rm-week">Weeks 6–8</div><div class="rm-name">Paper</div><ul class="rm-list"><li>Case studies ×3</li><li>Monoid proof</li><li>Results figures</li><li>Related work</li><li>Submission</li></ul></div>
+    </div>
+    <div class="section-label">Haskell Module Architecture</div>
+    <div class="module-grid">
+      <div class="mod"><div class="mod-path">scotty-web/app/Web.hs</div><div class="mod-name">Scotty Server</div><div class="mod-desc">Serves static/index.html · GET /analysis returns analysis.json as JSON with CORS headers</div></div>
+      <div class="mod"><div class="mod-path">Domain/Types.hs</div><div class="mod-name">Types</div><div class="mod-desc">Newtype-wrapped units: EmissionFactor, Distance, Population, TransportMode ADT</div></div>
+      <div class="mod"><div class="mod-path">Domain/Shifts.hs</div><div class="mod-name">Shifts ⭐</div><div class="mod-desc">MobilityShift as composable function — the paper's theoretical core. Monoid under composition.</div></div>
+      <div class="mod"><div class="mod-path">Analysis/Sensitivity.hs</div><div class="mod-name">Sensitivity</div><div class="mod-desc">emissionDelta · elasticity · sensitivity matrix · emissionGradient — all higher-order</div></div>
+      <div class="mod"><div class="mod-path">Analysis/MonteCarlo.hs</div><div class="mod-name">Monte Carlo</div><div class="mod-desc">Stochastic uncertainty via random sampling of emission factors and modal shares</div></div>
+      <div class="mod"><div class="mod-path">Data/Cities.hs</div><div class="mod-name">Cities</div><div class="mod-desc">Real-world baselines: Berlin · Lagos · Mumbai · New York · Paris · Sydney · São Paulo · Tokyo</div></div>
     </div>
   </div>
+</div>
 
 </div><!-- /main -->
+</div><!-- /shell -->
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// DATA — mirrors exactly what the Haskell CLI would export
-// ═══════════════════════════════════════════════════════════
-const CITY_DATA = {
-  mumbai: {
-    name: "Mumbai", country: "India", population: 20700000,
-    baseline: 1.84,
-    modes: ["Car","Motorcycle","Bus","Rail","Bicycle","Walk"],
-    shares: [0.18, 0.12, 0.28, 0.30, 0.03, 0.09],
-    modeEmissions: [0.82, 0.37, 0.68, 0.33, 0.00, 0.00],
-    factors: [0.192, 0.113, 0.089, 0.041, 0.000, 0.000],
-    scenarios: [
-      { name:"Car→Bus 20%",     result:1.61, saving: 4762 },
-      { name:"Car→Rail 30%",    result:1.31, saving: 9820 },
-      { name:"Car→EBike 10%",   result:1.72, saving: 2484 },
-      { name:"Bus Electrify",   result:1.50, saving: 7008 },
-      { name:"Full Electrify",  result:1.08, saving:15694 },
-      { name:"15-Min City",     result:1.55, saving: 5980 },
-      { name:"Combined",        result:0.87, saving:20010 },
-    ]
-  },
-  berlin: {
-    name: "Berlin", country: "Germany", population: 3600000,
-    baseline: 0.98,
-    modes: ["Car","Bus","Rail","Tram","Bicycle","Walk"],
-    shares: [0.27, 0.12, 0.30, 0.08, 0.18, 0.05],
-    modeEmissions: [0.51, 0.12, 0.10, 0.04, 0.00, 0.00],
-    factors: [0.192, 0.089, 0.015, 0.011, 0.000, 0.000],
-    scenarios: [
-      { name:"Car→Bus 20%",     result:0.87, saving:  575 },
-      { name:"Car→Rail 30%",    result:0.71, saving:  987 },
-      { name:"Car→EBike 10%",   result:0.92, saving:  314 },
-      { name:"Bus Electrify",   result:0.93, saving:  263 },
-      { name:"Full Electrify",  result:0.62, saving: 1314 },
-      { name:"15-Min City",     result:0.83, saving:  657 },
-      { name:"Combined",        result:0.44, saving: 2007 },
-    ]
-  },
-  nyc: {
-    name: "New York City", country: "USA", population: 8300000,
-    baseline: 1.42,
-    modes: ["Car","Car (EV)","Bus","Rail","Bicycle","Walk"],
-    shares: [0.33, 0.04, 0.12, 0.32, 0.07, 0.12],
-    modeEmissions: [0.76, 0.05, 0.13, 0.32, 0.00, 0.00],
-    factors: [0.192, 0.046, 0.089, 0.024, 0.000, 0.000],
-    scenarios: [
-      { name:"Car→Bus 20%",     result:1.24, saving: 1823 },
-      { name:"Car→Rail 30%",    result:1.02, saving: 3654 },
-      { name:"Car→EBike 10%",   result:1.33, saving:  912 },
-      { name:"Bus Electrify",   result:1.36, saving:  730 },
-      { name:"Full Electrify",  result:0.91, saving: 4563 },
-      { name:"15-Min City",     result:1.21, saving: 2190 },
-      { name:"Combined",        result:0.71, saving: 7180 },
-    ]
-  },
-  amsterdam: {
-    name: "Amsterdam", country: "Netherlands", population: 872000,
-    baseline: 0.61,
-    modes: ["Car","Bus","Rail","Tram","Bicycle","Walk"],
-    shares: [0.22, 0.08, 0.12, 0.10, 0.38, 0.10],
-    modeEmissions: [0.36, 0.04, 0.02, 0.01, 0.00, 0.00],
-    factors: [0.192, 0.089, 0.015, 0.011, 0.000, 0.000],
-    scenarios: [
-      { name:"Car→Bus 20%",     result:0.54, saving:   44 },
-      { name:"Car→Rail 30%",    result:0.46, saving:   95 },
-      { name:"Car→EBike 10%",   result:0.57, saving:   25 },
-      { name:"Bus Electrify",   result:0.58, saving:   19 },
-      { name:"Full Electrify",  result:0.38, saving:  146 },
-      { name:"15-Min City",     result:0.52, saving:   57 },
-      { name:"Combined",        result:0.26, saving:  221 },
-    ]
-  },
-  nairobi: {
-    name: "Nairobi", country: "Kenya", population: 4900000,
-    baseline: 2.11,
-    modes: ["Car","Motorcycle","Bus","Bicycle","Walk"],
-    shares: [0.14, 0.08, 0.55, 0.03, 0.20],
-    modeEmissions: [0.59, 0.25, 1.10, 0.00, 0.00],
-    factors: [0.192, 0.113, 0.089, 0.000, 0.000],
-    scenarios: [
-      { name:"Car→Bus 20%",     result:1.98, saving:  463 },
-      { name:"Car→Rail 30%",    result:1.82, saving:  930 },
-      { name:"Car→EBike 10%",   result:2.00, saving:  232 },
-      { name:"Bus Electrify",   result:1.52, saving: 4298 },
-      { name:"Full Electrify",  result:1.38, saving: 5342 },
-      { name:"15-Min City",     result:1.95, saving:  580 },
-      { name:"Combined",        result:1.01, saving: 8196 },
-    ]
-  },
-  bogota: {
-    name: "Bogotá", country: "Colombia", population: 7400000,
-    baseline: 1.68,
-    modes: ["Car","Motorcycle","Bus","Bicycle","Walk"],
-    shares: [0.20, 0.09, 0.47, 0.07, 0.17],
-    modeEmissions: [0.73, 0.28, 1.18, 0.00, 0.00],
-    factors: [0.192, 0.113, 0.089, 0.000, 0.000],
-    scenarios: [
-      { name:"Car→Bus 20%",     result:1.48, saving: 5403 },
-      { name:"Car→Rail 30%",    result:1.24, saving:11496 },
-      { name:"Car→EBike 10%",   result:1.57, saving: 2958 },
-      { name:"Bus Electrify",   result:1.34, saving: 9101 },
-      { name:"Full Electrify",  result:1.12, saving:14710 },
-      { name:"15-Min City",     result:1.45, saving: 6224 },
-      { name:"Combined",        result:0.82, saving:23069 },
-    ]
+// ═══════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════
+const PALETTE = ['#00ffc8','#45d9ff','#c084fc','#ffb347','#ff6b35','#ff4757','#34d399','#60a5fa'];
+const FOSSIL  = ['Car','Motorcycle','Bus'];
+
+Chart.defaults.color = '#3d6058';
+Chart.defaults.borderColor = '#1f3330';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const CHART_OPTS = {
+  responsive: true,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: '#3d6058' }, grid: { color: '#1a2724' } },
+    y: { ticks: { color: '#3d6058' }, grid: { color: '#1a2724' } }
   }
 };
 
-const MODE_COLORS = [
-  '#ef4444','#f97316','#38bdf8','#2dd4a0','#a78bfa','#fbbf24','#fb7185','#34d399','#60a5fa','#f472b6'
-];
-
-const SCENARIO_COLORS = [
-  '#2dd4a0','#38bdf8','#a78bfa','#fbbf24','#f97316','#fb7185','#34d399'
-];
-
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════
-let currentCity = 'mumbai';
-let activeScenarios = new Set([0,1,4,6]);
-const charts = {};
+// ═══════════════════════════════════════════════
+let DATA = null, city = null, year = 2015, charts = {};
 
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════
+async function boot() {
+  try {
+    const r = await fetch('/analysis');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    DATA = await r.json();
+    init();
+  } catch(e) { loadErr(e); }
+}
+
+function loadErr(e) {
+  document.getElementById('loader').classList.add('out');
+  document.querySelector('.main').innerHTML = `
+    <div class="err-panel">
+      <h3>⚠ FAILED TO LOAD /analysis</h3>
+      <p>Make sure the Haskell server is running:<br>
+      <code>cd scotty-web && stack run</code><br>
+      Then open <code>http://localhost:3000</code><br><br>
+      Error: ${e.message}</p>
+    </div>`;
+}
+
+function init() {
+  const cities = [...new Set(DATA.cities.map(c => c.city))].sort();
+  city = cities[0];
+  const sel = document.getElementById('citySelect');
+  cities.forEach(n => { const o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o); });
+  document.getElementById('loader').classList.add('out');
+  renderDashboard();
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+const getD  = (c,y) => DATA.cities.find(r => r.city===c && r.year===y) || null;
+const getAll = y  => DATA.cities.filter(r => r.year===y);
+const dc    = id  => { if(charts[id]){ charts[id].destroy(); delete charts[id]; } };
+const label = d   => d ? `${d.city}, ${d.country}` : '—';
+const co2cls = v  => v < 3.5 ? 'g' : v < 5.5 ? 'w' : 'r';
+
+function mkChart(id, type, data, opts={}) {
+  dc(id);
+  const merged = {
+    ...CHART_OPTS,
+    ...opts,
+    plugins: { ...(CHART_OPTS.plugins||{}), ...(opts.plugins||{}) },
+    scales:  { ...(CHART_OPTS.scales||{}),  ...(opts.scales||{})  }
+  };
+  charts[id] = new Chart(document.getElementById(id), { type, data, options: merged });
+}
+
+// ═══════════════════════════════════════════════
 // NAVIGATION
-// ═══════════════════════════════════════════════════
-function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  el.classList.add('active');
-
-  // Lazy-init charts when page first shown
-  if (id === 'dashboard')   renderDashboard();
-  if (id === 'scenarios')   renderScenarios();
-  if (id === 'sensitivity') renderSensitivity();
-  if (id === 'comparison')  renderComparison();
+// ═══════════════════════════════════════════════
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');
+  el.classList.add('on');
+  const map = { dashboard:renderDashboard, globalstats:renderGlobal, sensitivity:renderSensitivity, comparison:renderComparison, modalsplit:renderModalSplit };
+  if (map[id]) map[id]();
 }
 
-// ═══════════════════════════════════════════════════
-// CITY SWITCH
-// ═══════════════════════════════════════════════════
-function switchCity(city) {
-  currentCity = city;
-  const d = CITY_DATA[city];
-  const label = `${d.name}, ${d.country}`;
-  document.getElementById('dash-city-badge').textContent = label;
-  document.getElementById('scen-city-badge').textContent = label;
-  document.getElementById('sens-city-badge').textContent = label;
-
-  destroyCharts(['chart-modal-share','chart-modal-emission','chart-factors',
-    'chart-scenarios','chart-timeline','chart-savings',
-    'chart-gradient','chart-top-shifts']);
-
-  const activePage = document.querySelector('.page.active').id.replace('page-','');
-  if (activePage === 'dashboard')   renderDashboard();
-  if (activePage === 'scenarios')   renderScenarios();
-  if (activePage === 'sensitivity') renderSensitivity();
+function switchCity(c) {
+  city = c;
+  const d = getD(c, year);
+  ['dash-badge','sens-badge'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=label(d); });
+  renderDashboard();
+  const ap = document.querySelector('.page.on');
+  if (ap) { const id=ap.id.replace('page-',''); if(id==='sensitivity') renderSensitivity(); }
 }
 
-function destroyCharts(ids) {
-  ids.forEach(id => { if (charts[id]) { charts[id].destroy(); delete charts[id]; } });
+function switchYear(y, btn) {
+  year = y;
+  document.querySelectorAll('.year-pill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderDashboard();
+  const ap = document.querySelector('.page.on');
+  if (ap) {
+    const id = ap.id.replace('page-','');
+    const map = { globalstats:renderGlobal, comparison:renderComparison, sensitivity:renderSensitivity, modalsplit:renderModalSplit };
+    if (map[id]) map[id]();
+  }
 }
 
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // DASHBOARD
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 function renderDashboard() {
-  const d = CITY_DATA[currentCity];
-  const annualMt = (d.baseline * d.population * 365 / 1e9).toFixed(1);
-  const topIdx = d.shares.indexOf(Math.max(...d.shares));
+  const d = getD(city, year);
+  if (!d) return;
 
-  document.getElementById('stat-baseline').textContent = d.baseline.toFixed(2);
-  document.getElementById('stat-pop').textContent = (d.population/1e6).toFixed(1) + 'M';
-  document.getElementById('stat-annual').textContent = annualMt;
-  document.getElementById('stat-topmode').textContent = d.modes[topIdx] + ' ' + Math.round(d.shares[topIdx]*100) + '%';
+  document.getElementById('dash-badge').textContent = label(d);
+  document.getElementById('sens-badge').textContent = label(d);
 
-  destroyCharts(['chart-modal-share','chart-modal-emission','chart-factors']);
+  // KPIs
+  const cls = co2cls(d.co2PerCapitaDay);
+  setKPI('kv-co2', d.co2PerCapitaDay.toFixed(3), cls);
+  setKPI('kv-pop', (d.population/1e6).toFixed(1)+'M', '');
+  setKPI('kv-annual', d.annualCO2Tonnes > 1e6 ? (d.annualCO2Tonnes/1e6).toFixed(2)+'M' : Math.round(d.annualCO2Tonnes).toLocaleString(), cls);
+  setKPI('kv-green', d.greenScore.toFixed(1), d.greenScore>20?'g':d.greenScore>12?'w':'r');
 
-  charts['chart-modal-share'] = new Chart(document.getElementById('chart-modal-share'), {
-    type: 'doughnut',
-    data: {
-      labels: d.modes,
-      datasets: [{ data: d.shares.map(s => (s*100).toFixed(1)), backgroundColor: MODE_COLORS, borderWidth: 0, hoverOffset: 6 }]
-    },
-    options: { responsive:true, plugins: { legend:{ position:'right', labels:{ color:'#5a7080', font:{family:"'DM Mono'",size:11} } } } }
+  // CO2 delta badge
+  const d2 = getD(city, year===2015?2020:2015);
+  if (d2) {
+    const delta = (d.co2PerCapitaDay - d2.co2PerCapitaDay).toFixed(3);
+    const el = document.getElementById('kd-co2');
+    const up = year===2020 && delta < 0;
+    el.innerHTML = `<span class="kpi-delta ${up?'up':'dn'}">${up?'↓':'↑'} ${Math.abs(delta)} vs ${year===2015?2020:2015}</span>`;
+  }
+
+  // Modal share doughnut
+  mkChart('ch-modal','doughnut',{
+    labels: d.modalSplit.map(m=>m.mode),
+    datasets:[{ data:d.modalSplit.map(m=>m.share), backgroundColor:PALETTE, borderColor:'#09100f', borderWidth:3 }]
+  },{ cutout:'60%', plugins:{ legend:{ display:true, position:'right', labels:{ color:'#6b9e94', boxWidth:10, padding:10, font:{size:10} } } }, scales:{} });
+
+  // Radar
+  mkChart('ch-radar','radar',{
+    labels:['Green Score','Sustainability','Green Mobility','Renewable %','Low CO₂','Low Energy'],
+    datasets:[{
+      label:d.city,
+      data:[d.greenScore, d.sustainabilityIndex, d.greenMobilityIndex, d.renewableProxy,
+            Math.max(0,100-d.co2PerCapitaDay*12), Math.max(0,100-d.energyMJPerCapitaDay)],
+      borderColor:'#00ffc8', backgroundColor:'rgba(0,255,200,0.08)',
+      borderWidth:2, pointRadius:4, pointBackgroundColor:'#00ffc8'
+    }]
+  },{ scales:{ r:{ ticks:{display:false}, grid:{color:'#1a2724'}, pointLabels:{color:'#3d6058',font:{size:9}} } }, plugins:{legend:{display:false}} });
+
+  // Fossil vs Renewable doughnut
+  mkChart('ch-fossil','doughnut',{
+    labels:['Fossil Fuel','Renewable'],
+    datasets:[{ data:[d.fossilFuelShare, d.renewableProxy], backgroundColor:['#ff475788','#00ffc888'], borderColor:['#ff4757','#00ffc8'], borderWidth:2 }]
+  },{ cutout:'55%', plugins:{ legend:{ display:true, position:'bottom', labels:{ color:'#6b9e94', boxWidth:8, padding:8, font:{size:9} } } }, scales:{} });
+
+  // Motorisation bar pair
+  mkChart('ch-motor','bar',{
+    labels:['Motorisation Rate','Green Mobility Index'],
+    datasets:[{
+      data:[d.motorisationRate, d.greenMobilityIndex],
+      backgroundColor:['#ff475755','#00ffc855'],
+      borderColor:['#ff4757','#00ffc8'],
+      borderWidth:1, borderRadius:4
+    }]
   });
 
-  charts['chart-modal-emission'] = new Chart(document.getElementById('chart-modal-emission'), {
-    type: 'bar',
-    data: {
-      labels: d.modes,
-      datasets: [{ label:'kg CO₂', data: d.modeEmissions, backgroundColor: MODE_COLORS, borderRadius: 3 }]
-    },
-    options: { responsive:true, plugins:{ legend:{display:false} }, scales: { x:{ ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}} }, y:{ ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}, grid:{color:'#1e2a36'} } } }
-  });
+  // Air quality
+  mkChart('ch-air','bar',{
+    labels:['NOₓ/capita/day','PM10/capita/day × 10'],
+    datasets:[{
+      data:[d.noxPerCapitaDay*1000, d.pm10PerCapitaDay*10000],
+      backgroundColor:['#ffb34755','#c084fc55'],
+      borderColor:['#ffb347','#c084fc'],
+      borderWidth:1, borderRadius:4,
+      label:'mg/person/day (scaled)'
+    }]
+  },{ plugins:{legend:{display:true, labels:{color:'#3d6058',font:{size:9}}}} });
 
-  charts['chart-factors'] = new Chart(document.getElementById('chart-factors'), {
-    type: 'bar',
-    data: {
-      labels: d.modes,
-      datasets: [{ label:'kg CO₂/pkm', data: d.factors, backgroundColor:'#38bdf8aa', borderColor:'#38bdf8', borderWidth:1, borderRadius:3 }]
-    },
-    options: { indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}},grid:{color:'#1e2a36'}}, y:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}} } }
-  });
-}
-
-// ═══════════════════════════════════════════════════
-// SCENARIOS
-// ═══════════════════════════════════════════════════
-function renderScenarios() {
-  const d = CITY_DATA[currentCity];
-
-  // Build toggle buttons
-  const togglesEl = document.getElementById('scenario-toggles');
-  togglesEl.innerHTML = '';
-  d.scenarios.forEach((s, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'scenario-toggle' + (activeScenarios.has(i) ? ' active' : '');
-    btn.textContent = s.name;
-    btn.onclick = () => { toggleScenario(i, btn); };
-    togglesEl.appendChild(btn);
-  });
-
-  destroyCharts(['chart-scenarios','chart-savings','chart-timeline']);
-  drawScenarioChart(d);
-  drawSavingsChart(d);
-  drawTimeline(d, +document.getElementById('shiftSlider').value);
-}
-
-function toggleScenario(i, btn) {
-  if (activeScenarios.has(i)) activeScenarios.delete(i);
-  else activeScenarios.add(i);
-  btn.classList.toggle('active');
-  const d = CITY_DATA[currentCity];
-  if (charts['chart-scenarios']) { charts['chart-scenarios'].destroy(); }
-  if (charts['chart-savings'])   { charts['chart-savings'].destroy(); }
-  drawScenarioChart(d);
-  drawSavingsChart(d);
-}
-
-function drawScenarioChart(d) {
-  const active = d.scenarios.filter((_,i) => activeScenarios.has(i));
-  const colors = [...activeScenarios].map(i => SCENARIO_COLORS[i % SCENARIO_COLORS.length]);
-
-  charts['chart-scenarios'] = new Chart(document.getElementById('chart-scenarios'), {
-    type: 'bar',
-    data: {
-      labels: ['Baseline', ...active.map(s => s.name)],
-      datasets: [{
-        label: 'kg CO₂/person/day',
-        data: [d.baseline, ...active.map(s => s.result)],
-        backgroundColor: ['#ef444488', ...colors.map(c => c + '88')],
-        borderColor:     ['#ef4444',   ...colors],
-        borderWidth: 1, borderRadius: 4
-      }]
-    },
-    options: {
-      responsive:true,
-      plugins:{ legend:{display:false} },
-      scales:{
-        x:{ ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}} },
-        y:{ beginAtZero:true, ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}, grid:{color:'#1e2a36'} }
-      }
-    }
+  // All indices bar
+  mkChart('ch-indices','bar',{
+    labels:['Energy MJ/p/d','Green Score','Sustainability','Green Mobility','Saving Potential'],
+    datasets:[{
+      data:[d.energyMJPerCapitaDay, d.greenScore, d.sustainabilityIndex, d.greenMobilityIndex, d.energySavingPotential],
+      backgroundColor:PALETTE.map(c=>c+'44'),
+      borderColor:PALETTE,
+      borderWidth:1, borderRadius:3
+    }]
   });
 }
 
-function drawSavingsChart(d) {
-  const active = d.scenarios.filter((_,i) => activeScenarios.has(i));
-  const colors = [...activeScenarios].map(i => SCENARIO_COLORS[i % SCENARIO_COLORS.length]);
-
-  charts['chart-savings'] = new Chart(document.getElementById('chart-savings'), {
-    type: 'bar',
-    data: {
-      labels: active.map(s => s.name),
-      datasets: [{
-        label: 'Thousand tonnes CO₂/yr',
-        data: active.map(s => (s.saving/1000).toFixed(1)),
-        backgroundColor: colors.map(c => c + '55'),
-        borderColor: colors, borderWidth:1, borderRadius:4
-      }]
-    },
-    options: {
-      indexAxis:'y', responsive:true,
-      plugins:{ legend:{display:false} },
-      scales:{
-        x:{ ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}, grid:{color:'#1e2a36'} },
-        y:{ ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}} }
-      }
-    }
-  });
+function setKPI(id, val, cls) {
+  const el = document.getElementById(id);
+  el.textContent = val;
+  el.className = 'kpi-val' + (cls ? ' '+cls : '');
 }
 
-function updateTimeline(val) {
-  document.getElementById('shiftVal').textContent = val + '%';
-  if (charts['chart-timeline']) charts['chart-timeline'].destroy();
-  drawTimeline(CITY_DATA[currentCity], +val);
+// ═══════════════════════════════════════════════
+// GLOBAL STATS
+// ═══════════════════════════════════════════════
+function renderGlobal() {
+  const gs = DATA.globalStats;
+  document.getElementById('gstat-year-tag').textContent = year;
+  document.getElementById('comp-year-badge') && (document.getElementById('comp-year-badge').textContent = `Year: ${year}`);
+
+  document.getElementById('gstat-cards').innerHTML = `
+    <div class="gstat"><div class="gstat-label">Total Cities</div><div class="gstat-num">${gs.totalCities}</div><div class="gstat-sub">across ${gs.continents.length} continents</div></div>
+    <div class="gstat"><div class="gstat-label">CO₂ Global Mean</div><div class="gstat-num">${gs.co2Stats.mean.toFixed(3)}</div><div class="gstat-sub">kg/person/day · σ ${gs.co2Stats.stdDev.toFixed(3)}</div></div>
+    <div class="gstat"><div class="gstat-label">Population-Weighted CO₂</div><div class="gstat-num">${gs.populationWeightedCO2.toFixed(3)}</div><div class="gstat-sub">kg/person/day weighted</div></div>
+    <div class="gstat"><div class="gstat-label">CO₂ Range</div><div class="gstat-num">${gs.co2Stats.min.toFixed(2)}–${gs.co2Stats.max.toFixed(2)}</div><div class="gstat-sub">min / max kg/p/d</div></div>
+    <div class="gstat"><div class="gstat-label">Green Score Mean</div><div class="gstat-num">${gs.greenStats.mean.toFixed(1)}</div><div class="gstat-sub">σ ${gs.greenStats.stdDev.toFixed(1)}</div></div>
+    <div class="gstat"><div class="gstat-label">Continents</div><div class="gstat-num">${gs.continents.length}</div><div class="gstat-sub">${gs.continents.join(' · ')}</div></div>
+  `;
+
+  const forY = getAll(year).sort((a,b)=>b.co2PerCapitaDay-a.co2PerCapitaDay);
+  mkChart('ch-co2dist','bar',{
+    labels:forY.map(c=>c.city),
+    datasets:[{
+      data:forY.map(c=>c.co2PerCapitaDay),
+      backgroundColor:forY.map(c=>c.co2PerCapitaDay>5.5?'#ff475766':c.co2PerCapitaDay>4?'#ffb34766':'#00ffc866'),
+      borderColor:    forY.map(c=>c.co2PerCapitaDay>5.5?'#ff4757'  :c.co2PerCapitaDay>4?'#ffb347'  :'#00ffc8'),
+      borderWidth:1,borderRadius:4
+    }]
+  });
+
+  const sg = getAll(year).sort((a,b)=>b.greenScore-a.greenScore);
+  mkChart('ch-greendist','bar',{
+    labels:sg.map(c=>c.city),
+    datasets:[{ data:sg.map(c=>c.greenScore), backgroundColor:'#00ffc844', borderColor:'#00ffc8', borderWidth:1, borderRadius:4 }]
+  });
+
+  const cn = getAll(2015).map(c=>c.city);
+  const v15 = cn.map(n=>getAll(2015).find(c=>c.city===n)?.co2PerCapitaDay);
+  const v20 = cn.map(n=>getAll(2020).find(c=>c.city===n)?.co2PerCapitaDay);
+  mkChart('ch-trend','bar',{
+    labels:cn,
+    datasets:[
+      { label:'2015', data:v15, backgroundColor:'#45d9ff44', borderColor:'#45d9ff', borderWidth:1, borderRadius:2 },
+      { label:'2020', data:v20, backgroundColor:'#00ffc844', borderColor:'#00ffc8', borderWidth:1, borderRadius:2 }
+    ]
+  },{ plugins:{ legend:{ display:true, labels:{ color:'#3d6058', font:{size:10} } } } });
 }
 
-function drawTimeline(d, shiftPct) {
-  const years = Array.from({length:17}, (_,i) => 2024+i);
-  const baseline = years.map(() => d.baseline);
-  const shifted  = years.map((_, i) => {
-    const reduction = Math.min(0.85, i * shiftPct/100);
-    return +(d.baseline * (1 - reduction)).toFixed(3);
-  });
-  const optimistic = years.map((_, i) => {
-    const reduction = Math.min(0.92, i * shiftPct*1.4/100);
-    return +(d.baseline * (1 - reduction)).toFixed(3);
-  });
-
-  charts['chart-timeline'] = new Chart(document.getElementById('chart-timeline'), {
-    type:'line',
-    data:{
-      labels: years,
-      datasets:[
-        { label:'Baseline (no shift)',  data:baseline,  borderColor:'#ef4444', backgroundColor:'transparent', borderDash:[5,5], borderWidth:1.5, pointRadius:0 },
-        { label:'Current trajectory',  data:shifted,   borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.06)', fill:true, borderWidth:2, pointRadius:0, tension:0.3 },
-        { label:'Optimistic scenario', data:optimistic,borderColor:'#2dd4a0', backgroundColor:'rgba(45,212,160,0.06)', fill:true, borderWidth:2, pointRadius:0, tension:0.3 }
-      ]
-    },
-    options:{
-      responsive:true,
-      plugins:{ legend:{ position:'bottom', labels:{ color:'#5a7080', font:{family:"'DM Mono'",size:10} } } },
-      scales:{
-        x:{ ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}, grid:{color:'#1e2a36'} },
-        y:{ ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}, grid:{color:'#1e2a36'} }
-      }
-    }
-  });
-}
-
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // SENSITIVITY
-// ═══════════════════════════════════════════════════
-function computeSensitivityMatrix(d) {
-  // Approximate sensitivity: delta emission when redirecting 10% of FROM to TO
-  const matrix = {};
-  d.modes.forEach((from, fi) => {
-    matrix[from] = {};
-    d.modes.forEach((to, ti) => {
-      if (fi === ti) { matrix[from][to] = 0; return; }
-      const fromShare  = d.shares[fi];
-      const fromFactor = d.factors[fi];
-      const toFactor   = d.factors[ti];
-      // approx: delta = 0.1 * fromShare * dist * (toEF - fromEF)
-      const delta = 0.1 * fromShare * 7.5 * (toFactor - fromFactor);
-      matrix[from][to] = +delta.toFixed(4);
-    });
-  });
-  return matrix;
-}
-
-function heatClass(v) {
-  if (v === 0)    return 'heat-zero';
-  if (v < -0.08)  return 'heat-strong-pos';
-  if (v < -0.03)  return 'heat-med-pos';
-  if (v < 0)      return 'heat-light-pos';
-  if (v < 0.03)   return 'heat-light-neg';
-  if (v < 0.08)   return 'heat-med-neg';
-  return 'heat-strong-neg';
-}
-
+// ═══════════════════════════════════════════════
 function renderSensitivity() {
-  const d = CITY_DATA[currentCity];
-  const matrix = computeSensitivityMatrix(d);
+  const d = getD(city, year);
+  if (!d) return;
+  document.getElementById('sens-badge').textContent = label(d);
 
-  // Build HTML table
-  let html = '<table class="matrix-table"><thead><tr><th>FROM \\ TO</th>';
-  d.modes.forEach(m => { html += `<th>${m}</th>`; });
-  html += '</tr></thead><tbody>';
-  d.modes.forEach(from => {
-    html += `<tr><th>${from}</th>`;
-    d.modes.forEach(to => {
-      const v = matrix[from][to];
-      const cls = heatClass(v);
-      const display = v === 0 ? '—' : (v > 0 ? '+' : '') + v.toFixed(3);
-      html += `<td class="${cls}" title="${from} → ${to}: ${display} kg CO₂/p/d">${display}</td>`;
-    });
-    html += '</tr>';
+  let html = `<table class="sens-table"><thead><tr>
+    <th style="text-align:left">Mode</th><th>Share %</th><th>Est. CO₂ Contrib.</th><th>Fossil?</th><th>Sensitivity</th><th>NOₓ proxy</th>
+  </tr></thead><tbody>`;
+  d.modalSplit.forEach(m => {
+    const contrib = ((m.share/100)*d.co2PerCapitaDay).toFixed(4);
+    const isFossil = FOSSIL.some(f => m.mode.toLowerCase().includes(f.toLowerCase()));
+    const cls = isFossil
+      ? (m.share>30?'h-r3':m.share>15?'h-r2':'h-r1')
+      : (m.share>20?'h-g3':'h-g1');
+    const sens = isFossil ? (m.share>30?'■ CRITICAL':m.share>15?'▲ HIGH':'▪ LOW') : '● GREEN';
+    const nox = ((m.share/100)*d.noxPerCapitaDay*1000).toFixed(4);
+    html += `<tr>
+      <th style="text-align:left;color:var(--pale)">${m.mode}</th>
+      <td>${m.share.toFixed(1)}%</td>
+      <td class="${cls}">${contrib} kg</td>
+      <td style="color:${isFossil?'var(--rose)':'var(--neon)'}">${isFossil?'⚠ Yes':'✓ No'}</td>
+      <td class="${cls}">${sens}</td>
+      <td style="color:var(--mist)">${nox} mg</td>
+    </tr>`;
   });
   html += '</tbody></table>';
-  document.getElementById('sensitivity-matrix').innerHTML = html;
+  document.getElementById('sens-matrix').innerHTML = html;
 
-  // Gradient chart
-  const gradients = d.modes.map((_, i) => {
-    const ef = d.factors[i];
-    return +(ef * d.shares[i] * 7.5).toFixed(4);
+  mkChart('ch-gradient','bar',{
+    labels:d.modalSplit.map(m=>m.mode),
+    datasets:[{
+      data:d.modalSplit.map(m=>+((m.share/100)*d.co2PerCapitaDay).toFixed(4)),
+      backgroundColor:d.modalSplit.map((m,i)=>PALETTE[i%PALETTE.length]+'55'),
+      borderColor:    d.modalSplit.map((m,i)=>PALETTE[i%PALETTE.length]),
+      borderWidth:1,borderRadius:3
+    }]
   });
 
-  destroyCharts(['chart-gradient','chart-top-shifts']);
-
-  charts['chart-gradient'] = new Chart(document.getElementById('chart-gradient'), {
-    type:'bar',
-    data:{
-      labels: d.modes,
-      datasets:[{ label:'∂E/∂share', data:gradients, backgroundColor: d.modes.map((_, i) => MODE_COLORS[i] + '99'), borderColor: MODE_COLORS, borderWidth:1, borderRadius:3 }]
-    },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}}, y:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}},grid:{color:'#1e2a36'}} } }
-  });
-
-  // Top shifts
-  const pairs = [];
-  d.modes.forEach((from, fi) => {
-    d.modes.forEach((to, ti) => {
-      if (fi !== ti) pairs.push({ label: `${from}→${to}`, val: matrix[from][to] });
+  const d15=getD(city,2015), d20=getD(city,2020);
+  if (d15 && d20) {
+    const names = d15.modalSplit.map(m=>m.mode);
+    const deltas = names.map(n => {
+      const a=d15.modalSplit.find(m=>m.mode===n), b=d20.modalSplit.find(m=>m.mode===n);
+      return a&&b ? +(b.share-a.share).toFixed(2) : 0;
     });
-  });
-  pairs.sort((a,b) => a.val - b.val);
-  const top6 = pairs.slice(0,6);
-
-  charts['chart-top-shifts'] = new Chart(document.getElementById('chart-top-shifts'), {
-    type:'bar',
-    data:{
-      labels: top6.map(p=>p.label),
-      datasets:[{ label:'Emission delta', data:top6.map(p=>p.val), backgroundColor:'#2dd4a055', borderColor:'#2dd4a0', borderWidth:1, borderRadius:3 }]
-    },
-    options:{
-      indexAxis:'y', responsive:true, plugins:{legend:{display:false}},
-      scales:{ x:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}},grid:{color:'#1e2a36'}}, y:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}}} }
-    }
-  });
-}
-
-// ═══════════════════════════════════════════════════
-// COMPARISON
-// ═══════════════════════════════════════════════════
-function renderComparison() {
-  const cityKeys = Object.keys(CITY_DATA);
-  const cityList = cityKeys.map(k => CITY_DATA[k]);
-  const sorted   = [...cityList].sort((a,b) => b.baseline - a.baseline);
-  const maxB     = Math.max(...cityList.map(c => c.baseline));
-
-  destroyCharts(['chart-city-compare']);
-
-  charts['chart-city-compare'] = new Chart(document.getElementById('chart-city-compare'), {
-    type:'bar',
-    data:{
-      labels: sorted.map(c => c.name),
+    mkChart('ch-shift','bar',{
+      labels:names,
       datasets:[{
-        label:'kg CO₂/person/day',
-        data: sorted.map(c => c.baseline),
-        backgroundColor: sorted.map(c => c.baseline > 1.5 ? '#ef444488' : c.baseline > 1.0 ? '#f9731688' : '#2dd4a088'),
-        borderColor:     sorted.map(c => c.baseline > 1.5 ? '#ef4444'   : c.baseline > 1.0 ? '#f97316'   : '#2dd4a0'),
-        borderWidth:1, borderRadius:4
+        data:deltas,
+        backgroundColor:deltas.map(v=>v<0?'#00ffc855':'#ff475755'),
+        borderColor:    deltas.map(v=>v<0?'#00ffc8'  :'#ff4757'),
+        borderWidth:1,borderRadius:3
       }]
-    },
-    options:{
-      responsive:true, plugins:{legend:{display:false}},
-      scales:{ x:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:11}}}, y:{ticks:{color:'#5a7080',font:{family:"'DM Mono'",size:10}},grid:{color:'#1e2a36'}} }
-    }
-  });
-
-  // Table
-  const bestScenario = c => c.scenarios.reduce((a,b) => b.saving > a.saving ? b : a);
-  const table = document.getElementById('city-table');
-  table.innerHTML = `
-    <thead><tr>
-      <th>City</th><th>Country</th><th>Population</th>
-      <th>Baseline (kg/p/d)</th><th>Best Reduction</th><th>Max Saving (kt/yr)</th>
-    </tr></thead>
-    <tbody>
-    ${sorted.map(c => {
-      const best = bestScenario(c);
-      const reductionPct = ((c.baseline - best.result)/c.baseline*100).toFixed(1);
-      const barW = Math.round((c.baseline/maxB)*160);
-      const barClass = c.baseline > 1.5 ? 'bad' : c.baseline > 1.0 ? 'warn' : '';
-      return `<tr>
-        <td><strong>${c.name}</strong></td>
-        <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.72rem">${c.country}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${(c.population/1e6).toFixed(1)}M</td>
-        <td>
-          <div class="bar-cell">
-            <div class="bar-inner ${barClass}" style="width:${barW}px"></div>
-            <span style="font-family:'DM Mono',monospace;font-size:0.72rem">${c.baseline}</span>
-          </div>
-        </td>
-        <td><span class="pct-badge good">−${reductionPct}%</span></td>
-        <td style="font-family:'DM Mono',monospace;font-size:0.72rem">${(best.saving/1000).toFixed(1)} kt</td>
-      </tr>`;
-    }).join('')}
-    </tbody>
-  `;
+    });
+  }
 }
 
-// ═══════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════
-Chart.defaults.color = '#5a7080';
-Chart.defaults.borderColor = '#1e2a36';
-Chart.defaults.font.family = "'Syne', sans-serif";
+// ═══════════════════════════════════════════════
+// COMPARISON
+// ═══════════════════════════════════════════════
+function renderComparison() {
+  const el = document.getElementById('comp-year-badge');
+  if (el) el.textContent = `Year: ${year}`;
+  const rows = getAll(year).sort((a,b)=>b.co2PerCapitaDay-a.co2PerCapitaDay);
+  const max  = Math.max(...rows.map(r=>r.co2PerCapitaDay));
 
-renderDashboard();
+  mkChart('ch-compare','bar',{
+    labels:rows.map(r=>r.city),
+    datasets:[{
+      data:rows.map(r=>r.co2PerCapitaDay),
+      backgroundColor:rows.map(r=>r.co2PerCapitaDay>5.5?'#ff475766':r.co2PerCapitaDay>4?'#ffb34766':'#00ffc866'),
+      borderColor:    rows.map(r=>r.co2PerCapitaDay>5.5?'#ff4757'  :r.co2PerCapitaDay>4?'#ffb347'  :'#00ffc8'),
+      borderWidth:1,borderRadius:4
+    }]
+  });
+
+  const t = document.getElementById('city-table');
+  t.innerHTML = `<thead><tr>
+    <th>City</th><th>Country</th><th>Continent</th><th>Population</th>
+    <th>CO₂/p/d</th><th>Annual CO₂</th><th>Green Score</th><th>Fossil %</th><th>Green Mobility</th><th>Sustainability</th>
+  </tr></thead><tbody>${rows.map(r => {
+    const cls = co2cls(r.co2PerCapitaDay);
+    const pct = Math.round((r.co2PerCapitaDay/max)*100);
+    return `<tr>
+      <td class="city-name-cell"><strong>${r.city}</strong></td>
+      <td class="mono">${r.country}</td>
+      <td class="mono">${r.continent}</td>
+      <td class="mono">${(r.population/1e6).toFixed(1)}M</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fg ${cls}" style="width:${pct}%"></div></div>
+          <span class="mono">${r.co2PerCapitaDay.toFixed(3)}</span>
+        </div>
+      </td>
+      <td class="mono">${(r.annualCO2Tonnes/1e6).toFixed(2)}M t</td>
+      <td><span class="badge ${r.greenScore>20?'g':r.greenScore>12?'w':'r'}">${r.greenScore.toFixed(1)}</span></td>
+      <td class="mono">${r.fossilFuelShare.toFixed(1)}%</td>
+      <td class="mono">${r.greenMobilityIndex.toFixed(1)}</td>
+      <td class="mono">${r.sustainabilityIndex.toFixed(1)}</td>
+    </tr>`;
+  }).join('')}</tbody>`;
+}
+
+// ═══════════════════════════════════════════════
+// MODAL SPLIT
+// ═══════════════════════════════════════════════
+function renderModalSplit() {
+  function ranked(canvasId, data, label, color) {
+    dc(canvasId);
+    const items = data.slice(0,10);
+    charts[canvasId] = new Chart(document.getElementById(canvasId), {
+      type:'bar',
+      data:{ labels:items.map(i=>`${i.city} '${String(i.year).slice(2)}`),
+        datasets:[{ label, data:items.map(i=>i.share), backgroundColor:color+'44', borderColor:color, borderWidth:1, borderRadius:3 }] },
+      options:{ ...CHART_OPTS, indexAxis:'y' }
+    });
+  }
+
+  const ms = DATA.modalSplitRankings;
+  if (ms) {
+    if(ms.Car)         ranked('ch-car',  ms.Car,         'Car Share %', '#ff4757');
+    if(ms.Rail)        ranked('ch-rail', ms.Rail,        'Rail Share %','#00ffc8');
+    if(ms.ElectricCar) ranked('ch-ev',   ms.ElectricCar, 'EV Share %',  '#45d9ff');
+  }
+
+  const forY = getAll(year).map(c => {
+    const walk  = c.modalSplit.find(m=>m.mode==='Walking')?.share  || 0;
+    const cycle = c.modalSplit.find(m=>m.mode==='Cycling')?.share  || 0;
+    const rail  = c.modalSplit.find(m=>m.mode==='Rail')?.share     || 0;
+    return { city:c.city, share:+(walk+cycle+rail).toFixed(1) };
+  }).sort((a,b)=>b.share-a.share);
+
+  mkChart('ch-greenmode','bar',{
+    labels:forY.map(g=>g.city),
+    datasets:[{ data:forY.map(g=>g.share), backgroundColor:'#00ffc844', borderColor:'#00ffc8', borderWidth:1, borderRadius:3 }]
+  });
+}
+
+// ═══════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════
+boot();
 </script>
 </body>
 </html>
