@@ -1,42 +1,63 @@
-module DatasetLoader where
+module DatasetLoader
+  ( loadDataset
+  , loadDatasetFromString
+  , parseRecord
+  ) where
 
-import Models
+import Types
+import Utils (splitOn, parseDouble)
+import Data.Maybe (mapMaybe)
 
-splitComma :: String -> [String]
-splitComma "" = [""]
-splitComma s =
-  case break (== ',') s of
-    (first, ',' : rest) -> first : splitComma rest
-    (first, "") -> [first]
-    (first, _) -> [first]
-    
-parseRecord :: String -> TransportRecord
-parseRecord line =
-  case splitComma line of
-    [c,ct,cont,pop,y,mode,share,dist,trips,co2,nox,pm10,energy] ->
-      TransportRecord
-        c
-        ct
-        cont
-        (read pop)
-        (read y)
-        mode
-        (read share)
-        (read dist)
-        (read trips)
-        (read co2)
-        (read nox)
-        (read pm10)
-        (read energy)
-
-    _ -> error ("Invalid CSV row: " ++ line)
-
+-- | Load and parse the CSV from a file path
 loadDataset :: FilePath -> IO [TransportRecord]
-loadDataset path = do
-  content <- readFile path
-  let rows = lines content
-  let dataRows =
-        case rows of
-          [] -> []
-          (_:xs) -> xs
-  return (map parseRecord dataRows)
+loadDataset fp = do
+  contents <- readFile fp
+  return (loadDatasetFromString contents)
+
+-- | Parse CSV string into records (skips header and malformed lines)
+loadDatasetFromString :: String -> [TransportRecord]
+loadDatasetFromString contents =
+  let ls = lines contents
+      dataLines = drop 1 ls   -- skip header
+  in mapMaybe parseRecord dataLines
+
+-- | Parse a single CSV line into a TransportRecord
+-- city,country,continent,population,year,transport_mode,modal_share_pct,
+-- avg_trip_km,daily_trips,ef_co2,ef_nox,ef_pm10,energy_intensity
+parseRecord :: String -> Maybe TransportRecord
+parseRecord line =
+  case splitOn ',' line of
+    [city, country, continent, pop, yr, mode, share, tripKm,
+     dTrips, efCO2, efNOx, efPM10, energy] ->
+      do
+        population      <- readMaybeInt pop
+        year            <- readMaybeInt yr
+        transportMode   <- parseModeStr mode
+        modalShare      <- parseDouble share
+        avgTripKm       <- parseDouble tripKm
+        dailyTrips      <- readMaybeInt dTrips
+        emCO2           <- parseDouble efCO2
+        emNOx           <- parseDouble efNOx
+        emPM10          <- parseDouble efPM10
+        energyI         <- parseDouble energy
+        return TransportRecord
+          { trCity            = city
+          , trCountry         = country
+          , trContinent       = continent
+          , trPopulation      = population
+          , trYear            = year
+          , trMode            = transportMode
+          , trModalShare      = modalShare
+          , trAvgTripKm       = avgTripKm
+          , trDailyTrips      = dailyTrips
+          , trEfCO2           = emCO2
+          , trEfNOx           = emNOx
+          , trEfPM10          = emPM10
+          , trEnergyIntensity = energyI
+          }
+    _ -> Nothing
+
+readMaybeInt :: String -> Maybe Int
+readMaybeInt s = case reads s of
+  [(n, "")] -> Just n
+  _         -> Nothing

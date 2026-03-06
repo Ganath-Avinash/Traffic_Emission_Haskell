@@ -1,0 +1,24 @@
+{
+  "name": "urban-transport-emissions",
+  "version": "1.0.0",
+  "description": "Urban transport emission sensitivity analysis — Haskell + interactive web dashboard",
+  "scripts": {
+    "generate": "python3 generate_json.py",
+    "build": "cabal build",
+    "run": "cabal run transport-emissions -- data/eu_transport.csv",
+    "dev": "npm run generate && npm run serve",
+    "serve": "npx serve output -p 3000",
+    "preview": "npx live-server output --port=3000 --open=index.html",
+    "export": "npm run generate && cp -r output dist"
+  },
+  "keywords": ["transport", "emissions", "haskell", "co2", "urban", "mobility"],
+  "author": "Transport Emissions Analysis",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

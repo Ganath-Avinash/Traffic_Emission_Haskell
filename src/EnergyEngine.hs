@@ -1,10 +1,10 @@
 module EnergyEngine where
 
-import Models
+import Types
 
-modeEnergy :: TransportRecord -> Double
-modeEnergy r =
-  modalShare r *
-  avgTripKm r *
-  fromIntegral (dailyTrips r) *
-  energyIntensity r
+energyUse :: TransportRecord -> Double
+energyUse r =
+    trModalShare r * trAvgTripKm r * trEnergyIntensity r
+
+totalEnergy :: [TransportRecord] -> Double
+totalEnergy = sum . map energyUse
