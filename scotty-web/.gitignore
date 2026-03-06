@@ -1,2 +1,9 @@
 .stack-work/
-*~
+dist/
+dist-newstyle/
+*.log
+*.hi
+*.o
+*.swp
+*.lock
+node_modules/
