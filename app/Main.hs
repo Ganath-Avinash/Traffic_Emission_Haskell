@@ -1,149 +1,72 @@
 module Main where
 
-import Types
-import EmissionCalculator
+import DatasetLoader        (loadDataset)
+import CLI                  (runCLI, CLICommand(..), parseArgs)
+import Menu                 (runMenu, menuBanner)
+import System.Environment   (getArgs)
+import System.IO            (hPutStrLn, stderr, hSetBuffering, stdout, BufferMode(..))
 
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Vector as V
-import Data.Csv (decodeByName, Header)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Main entry point
+--
+-- Usage patterns
+-- ──────────────────────────────────────────────────────────────────────────
+--   transport-emissions                          → interactive menu
+--   transport-emissions help                     → usage text
+--   transport-emissions cities                   → city metrics table
+--   transport-emissions city Berlin 2020         → city deep report
+--   transport-emissions global                   → global statistics
+--   transport-emissions continent                → continent summary
+--   transport-emissions correlations             → correlation report
+--   transport-emissions rank co2                 → CO₂ ranking
+--   transport-emissions rank green               → low-carbon ranking
+--   transport-emissions rank ev                  → EV share ranking
+--   transport-emissions rank energy              → energy ranking
+--   transport-emissions sensitivity Berlin 2020  → sensitivity analysis
+--   transport-emissions scenarios Berlin 2020    → scenario comparison
+--   transport-emissions best                     → best scenario per city
+--   transport-emissions trends                   → trend slopes
+--
+-- If the last argument ends with ".csv" it overrides the default data path.
+-- ─────────────────────────────────────────────────────────────────────────────
 
 main :: IO ()
-main = menu
+main = do
+  hSetBuffering stdout LineBuffering
+  args <- getArgs
 
-menu :: IO ()
-menu = do
-    putStrLn "\n=== Urban Transport Emissions Modeling System ==="
-    putStrLn "1. Calculate base emission"
-    putStrLn "2. Simulate mobility shift"
-    putStrLn "3. Sensitivity analysis"
-    putStrLn "4. Load dataset and show summary"
-    putStrLn "5. Exit"
+  let (cmdArgs, csvPath) = extractCsvPath args
 
-    putStrLn "Enter your choice:"
-    choice <- getLine
+  hPutStrLn stderr $ "[transport-emissions] Loading: " ++ csvPath
+  records <- loadDataset csvPath
+  hPutStrLn stderr $ "[transport-emissions] Loaded " ++ show (length records) ++ " records."
 
-    case choice of
-        "1" -> calculateEmission >> menu
-        "2" -> simulateShift >> menu
-        "3" -> sensitivityAnalysis >> menu
-        "4" -> loadDataset >> menu
-        "5" -> putStrLn "Exiting program..."
-        _   -> putStrLn "Invalid choice!" >> menu
+  case cmdArgs of
+    -- No arguments → launch interactive menu
+    [] -> do
+      putStrLn menuBanner
+      runMenu records
+    -- Any recognised command → run it directly
+    _  -> do
+      let cmd = parseArgs cmdArgs
+      runCLI cmd records
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Helpers
+-- ─────────────────────────────────────────────────────────────────────────────
 
--- Base Emission Calculation
-calculateEmission :: IO ()
-calculateEmission = do
-    putStrLn "\nEnter city name:"
-    cityInput <- getLine
+-- | Split args into (command-args, csv-path).
+--   If the last arg ends with ".csv" it is the data path.
+extractCsvPath :: [String] -> ([String], FilePath)
+extractCsvPath [] = ([], defaultCSV)
+extractCsvPath args
+  | ".csv" `isSuffixOf` last args = (init args, last args)
+  | otherwise                      = (args, defaultCSV)
 
-    putStrLn "Enter population:"
-    popInput <- getLine
-    let popVal = read popInput :: Int
+defaultCSV :: FilePath
+defaultCSV = "data/eu_transport.csv"
 
-    putStrLn "Enter number of vehicles:"
-    vehInput <- getLine
-    let vehVal = read vehInput :: Int
-
-    putStrLn "Enter emission per vehicle (tons CO2 per year):"
-    emInput <- getLine
-    let emission = read emInput :: Double
-
-    let cityData = City cityInput popVal vehVal emission
-
-    let total = totalEmission cityData
-    let perCap = perCapitaEmission cityData
-
-    putStrLn "\n--- Base Emission Results ---"
-    putStrLn ("City: " ++ cityInput)
-    putStrLn ("Total Emission: " ++ show total)
-    putStrLn ("Per Capita Emission: " ++ show perCap)
-
-
--- Mobility Shift Simulation
-simulateShift :: IO ()
-simulateShift = do
-    putStrLn "\n--- Urban Mobility Shift Simulation ---"
-
-    putStrLn "Enter total vehicles:"
-    vehInput <- getLine
-    let vehicleCount = read vehInput :: Int
-
-    putStrLn "Enter emission per vehicle (tons CO2):"
-    emInput <- getLine
-    let emission = read emInput :: Double
-
-    putStrLn "Enter percentage shift from cars to public transport:"
-    shiftInput <- getLine
-    let shift = (read shiftInput :: Double) / 100
-
-    let shiftedVehicles = round (fromIntegral vehicleCount * shift)
-    let remainingVehicles = vehicleCount - shiftedVehicles
-
-    -- assume public transport emits 40% less
-    let publicEmission = emission * 0.6
-
-    let originalEmission = fromIntegral vehicleCount * emission
-
-    let newEmission =
-            (fromIntegral remainingVehicles * emission)
-            + (fromIntegral shiftedVehicles * publicEmission)
-
-    putStrLn "\n--- Simulation Results ---"
-    putStrLn ("Original Emission: " ++ show originalEmission)
-    putStrLn ("Emission After Mobility Shift: " ++ show newEmission)
-    putStrLn ("Reduction: " ++ show (originalEmission - newEmission))
-
-
--- Sensitivity Analysis
-sensitivityAnalysis :: IO ()
-sensitivityAnalysis = do
-    putStrLn "\n--- Sensitivity Analysis ---"
-
-    putStrLn "Enter number of vehicles:"
-    vehInput <- getLine
-    let vehicleCount = read vehInput :: Int
-
-    putStrLn "Enter emission per vehicle:"
-    emInput <- getLine
-    let emission = read emInput :: Double
-
-    let baseEmission = fromIntegral vehicleCount * emission
-
-    putStrLn ("Base emission: " ++ show baseEmission)
-
-    putStrLn "\nShift %  |  Emission"
-    mapM_ (printScenario vehicleCount emission) [5,10..50]
-
-
-printScenario :: Int -> Double -> Int -> IO ()
-printScenario vehicleCount emission shift = do
-
-    let shiftRate = (fromIntegral shift / 100.0) :: Double
-    let shifted = round (fromIntegral vehicleCount * shiftRate)
-
-    let publicEmission = emission * 0.6
-
-    let newEmission =
-            (fromIntegral (vehicleCount - shifted) * emission)
-            + (fromIntegral shifted * publicEmission)
-
-    putStrLn (show shift ++ "%      |  " ++ show newEmission)
-
-
--- Load Dataset
-loadDataset :: IO ()
-loadDataset = do
-    putStrLn "\nLoading dataset..."
-    csvData <- BL.readFile "transport_data.csv"
-
-    case decodeByName csvData :: Either String (Header, V.Vector TransportRecord) of
-        Left err ->
-            putStrLn ("Error reading CSV: " ++ err)
-
-        Right (_, records) -> do
-            putStrLn "Dataset loaded successfully!"
-            putStrLn ("Total records: " ++ show (V.length records))
-
-            putStrLn "\nFirst 5 records:"
-            mapM_ print (take 5 (V.toList records))
+isSuffixOf :: String -> String -> Bool
+isSuffixOf suffix str =
+  length str >= length suffix
+  && drop (length str - length suffix) str == suffix

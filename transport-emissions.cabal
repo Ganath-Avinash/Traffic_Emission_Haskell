@@ -1,0 +1,61 @@
+cabal-version:      3.0
+name:               transport-emissions
+version:            1.0.0
+synopsis:           Urban transport emission sensitivity analysis using higher-order Haskell abstractions
+description:
+  Models CO2, NOx, and PM10 sensitivity to urban modal share shifts.
+  Uses higher-order functions and functor/monoid abstractions for composable emission models.
+license:            MIT
+build-type:         Simple
+
+common warnings
+  ghc-options: -Wall
+
+library
+  import:           warnings
+  hs-source-dirs:   src
+  exposed-modules:
+    Types
+    Utils
+    DatasetLoader
+    Preprocessing
+    EmissionCalculator
+    EmissionEngine
+    EnergyEngine
+    CityAggregation
+    Statistics
+    Sensitivity
+    PolicyModel
+    Simulation
+    TrendAnalysis
+    ModeAnalysis
+    Ranking
+    Analysis
+    Models
+    JsonExport
+  build-depends:
+    base >=4.17 && <5,
+    directory ^>=1.3,
+    containers ^>=0.6
+  default-language: Haskell2010
+
+executable transport-emissions
+  import:           warnings
+  main-is:          Main.hs
+  hs-source-dirs:   app cli
+  other-modules:    CLI Menu
+  build-depends:
+    base >=4.17 && <5,
+    transport-emissions
+  default-language: Haskell2010
+
+test-suite emission-tests
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  other-modules:    DatasetTest EmissionTest SimulationTest
+  build-depends:
+    base >=4.17 && <5,
+    transport-emissions
+  default-language: Haskell2010
