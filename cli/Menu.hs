@@ -6,3 +6,6 @@ menu = do
   putStrLn "1 Load dataset"
   putStrLn "2 City emission"
   putStrLn "3 Exit"
+
+
+  
