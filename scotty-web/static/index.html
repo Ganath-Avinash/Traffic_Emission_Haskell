@@ -8,23 +8,23 @@
 
 <!-- ── FIREBASE SDK ── Replace with your own Firebase config ── -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-           sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup,
-           onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+   // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // ── YOUR FIREBASE CONFIG HERE ────────────────────────────────
+  // Your web app's Firebase configuration
   const firebaseConfig = {
-    apiKey:            "YOUR_API_KEY",
-    authDomain:        "YOUR_PROJECT.firebaseapp.com",
-    projectId:         "YOUR_PROJECT_ID",
-    storageBucket:     "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId:             "YOUR_APP_ID"
+    apiKey: "AIzaSyD7Z-RI4UOeyYxeWv4VVQQvCZ9kGdaqevM",
+    authDomain: "transport-emission.firebaseapp.com",
+    projectId: "transport-emission",
+    storageBucket: "transport-emission.firebasestorage.app",
+    messagingSenderId: "375640972672",
+    appId: "1:375640972672:web:32237743f3307352b1b565"
   };
-  // ─────────────────────────────────────────────────────────────
 
-  const app  = initializeApp(firebaseConfig);
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const googleProvider = new GoogleAuthProvider();
 
@@ -40,12 +40,6 @@
     setLoading('signin-btn', true);
     clearError('signin-error');
 
-    // ── TEMP ADMIN LOGIN (remove before going live) ──────────────
-    if (email === 'admin' && password === 'admin') {
-      window.location.href = 'dashboard.html';
-      return;
-    }
-    // ─────────────────────────────────────────────────────────────
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
