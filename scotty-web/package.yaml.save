@@ -1,0 +1,22 @@
+name: scotty-web
+version: 0.1.0.0
+license: BSD-3-Clause
+author: "Kavin J S"
+maintainer: "[kavinjs21@gmail.com](mailto:kavinjs21@gmail.com)"
+
+dependencies:
+
+* base >= 4.7 && < 5
+* scotty
+* text
+* process
+
+executables:
+scotty-web-exe:
+main: Main.hs
+source-dirs: app
+dependencies:
+- scotty
+- text
+- process
+
