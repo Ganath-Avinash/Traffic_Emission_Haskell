@@ -6,6 +6,26 @@
 <title>TransportSense — Urban Emission Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+const fbApp = initializeApp({
+  apiKey: "AIzaSyD7Z-RI4UOeyYxeWv4VVQQvCZ9kGdaqevM",
+  authDomain: "transport-emission.firebaseapp.com",
+  projectId: "transport-emission",
+  storageBucket: "transport-emission.firebasestorage.app",
+  messagingSenderId: "375640972672",
+  appId: "1:375640972672:web:32237743f3307352b1b565"
+});
+const fbAuth = getAuth(fbApp);
+onAuthStateChanged(fbAuth, user => {
+  const el = document.getElementById('user-greeting');
+  if (el && user) {
+    const name = user.displayName || user.email || 'User';
+    el.textContent = 'Hi, ' + name;
+  }
+});
+</script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -317,7 +337,7 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
     </div>
     <div class="status-bar">
       <span class="status-dot"></span>
-      <span id="status-text">Loading…</span>
+      <span id="user-greeting" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;display:inline-block">Hi, User</span>
     </div>
   </nav>
 
@@ -751,9 +771,9 @@ async function boot(){
     RAW=parseData(jsonData);
     COUNTRIES=[...new Set(RAW.map(r=>r.country))].sort();
     ALL_YEARS=[...new Set(RAW.map(r=>r.year))].sort();
-    document.getElementById('status-text').textContent=`${COUNTRIES.length} countries · ${ALL_YEARS.length} yrs`;
+    // user greeting is set by Firebase onAuthStateChanged above
     populateSelectors();buildRegionPills();renderGlobal();renderAnimDelta();renderAnimAvg();
-  }catch(e){document.getElementById('status-text').textContent='Error: '+e.message;}
+  }catch(e){const ug=document.getElementById('user-greeting');if(ug)ug.textContent='Error: '+e.message;}
   document.getElementById('loader').classList.add('out');
   setTimeout(()=>{const l=document.getElementById('loader');if(l)l.remove();},600);
 }
