@@ -11,12 +11,26 @@ import Data.Char (isSpace)
 main :: IO ()
 main = scotty 3000 $ do
 
-  -- Serve the dashboard
+  -- Serve login/auth page
   get "/" $ do
     file "static/index.html"
 
+  get "/index.html" $ do
+    file "static/index.html"
+
+  -- Serve main dashboard
+  get "/dashboard.html" $ do
+    file "static/dashboard.html"
+
   -- Serve analysis.json from static folder
   get "/analysis" $ do
+    jsonData <- liftIO $ BL.readFile "static/analysis.json"
+    setHeader "Content-Type" "application/json; charset=utf-8"
+    setHeader "Access-Control-Allow-Origin" "*"
+    raw jsonData
+
+  -- Serve analysis.json as direct file request
+  get "/analysis.json" $ do
     jsonData <- liftIO $ BL.readFile "static/analysis.json"
     setHeader "Content-Type" "application/json; charset=utf-8"
     setHeader "Access-Control-Allow-Origin" "*"

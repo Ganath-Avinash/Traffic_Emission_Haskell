@@ -39,6 +39,14 @@
     const password = document.getElementById('signin-password').value;
     setLoading('signin-btn', true);
     clearError('signin-error');
+
+    // ── TEMP ADMIN LOGIN (remove before going live) ──────────────
+    if (email === 'admin' && password === 'admin') {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       window.location.href = 'dashboard.html';
@@ -273,7 +281,7 @@ body::before{
   <div class="auth-panel active" id="panel-signin">
     <div class="field">
       <label class="field-label" for="signin-email">Email</label>
-      <input class="field-input" id="signin-email" type="email" placeholder="you@example.com" autocomplete="email">
+      <input class="field-input" id="signin-email" type="text" placeholder="Email or username" autocomplete="username">
     </div>
     <div class="field">
       <label class="field-label" for="signin-password">Password</label>
