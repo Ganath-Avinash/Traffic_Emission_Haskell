@@ -10,13 +10,23 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#080808;
+  --sidebar-bg:rgba(10,10,10,.92);
   --g1:rgba(255,255,255,.03);--g2:rgba(255,255,255,.06);--g3:rgba(255,255,255,.09);
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);--border3:rgba(255,255,255,.22);
-  --text:#ffffff;--text2:#d4d4d4;--text3:#a3a3a3;--text4:#616161;
+  --text:#ffffff;--text2:#d4d4d4;--text3:#a3a3a3;--text4:#8a8a8a;
   --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.07);--glass3:rgba(255,255,255,.11);
   --accent:#ffffff;--accent-dim:rgba(255,255,255,.7);
   --good:#4ade80;--warn:#facc15;--bad:#f87171;--info:#60a5fa;
   --sidebar:260px;
+}
+html.light-mode{
+  --bg:#f8f9fa;
+  --sidebar-bg:rgba(255,255,255,.92);
+  --g1:rgba(0,0,0,.03);--g2:rgba(0,0,0,.06);--g3:rgba(0,0,0,.09);
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.15);--border3:rgba(0,0,0,.22);
+  --text:#111111;--text2:#333333;--text3:#666666;--text4:#999999;
+  --glass:rgba(255,255,255,.6);--glass2:rgba(255,255,255,.8);--glass3:rgba(255,255,255,1);
+  --good:#16a34a;--warn:#ca8a04;--bad:#dc2626;--info:#2563eb;
 }
 html{font-size:14px}
 body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh}
@@ -32,7 +42,7 @@ body::before{content:'';position:fixed;inset:0;background:
 /* ── SIDEBAR ─────────────────────────────────────────────────── */
 .sidebar{
   width:var(--sidebar);flex-shrink:0;
-  background:rgba(10,10,10,.92);
+  background:var(--sidebar-bg);
   backdrop-filter:blur(24px) saturate(1.2);
   -webkit-backdrop-filter:blur(24px);
   border-right:1px solid var(--border);
@@ -115,9 +125,9 @@ body::before{content:'';position:fixed;inset:0;background:
 .tbl-head{padding:.75rem 1.4rem;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
 table{width:100%;border-collapse:collapse}
 th{padding:.5rem 1rem;text-align:left;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border);font-weight:500;font-family:'JetBrains Mono'}
-td{padding:.5rem 1rem;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text3)}
+td{padding:.5rem 1rem;font-size:12px;border-bottom:1px solid var(--g1);color:var(--text3)}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.03)}
+tr:hover td{background:var(--g1)}
 td.num{color:var(--text);font-family:'JetBrains Mono';font-size:11px}
 td.good{color:var(--good)}
 td.warn{color:var(--warn)}
@@ -128,7 +138,7 @@ td.name{font-weight:500;color:var(--text)}
 .ctrl-row{display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.2rem}
 .ctrl-group{display:flex;flex-direction:column;gap:.3rem}
 .ctrl-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono'}
-select,input[type=number]{
+select,input[type=number],input[type=text]{
   background:var(--glass2);border:1px solid var(--border2);
   color:var(--text);padding:.42rem .75rem;
   font-family:'Inter';font-size:12px;
@@ -136,21 +146,41 @@ select,input[type=number]{
 }
 select:focus,input:focus{border-color:var(--border3);background:var(--glass3);box-shadow:0 0 0 2px rgba(255,255,255,.06)}
 select{min-width:160px}
-select option{background:#141414;color:#ffffff;font-size:13px}
+select option{background:var(--bg);color:var(--text);font-size:13px}
 input[type=range] {
   -webkit-appearance: none;
-  appearance: none;        /* ← add this line */
-  height: 2px;
-  background: rgba(255,255,255,.12);
-  border: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
 }
 
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;        /* ← add this line */
-  width: 12px;
-  height: 12px;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--thumb-color, var(--text));
+  cursor: ew-resize;
+  border: 2px solid var(--bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.15s;
 }
+input[type=range]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--thumb-color, var(--text));
+  cursor: ew-resize;
+  border: 2px solid var(--bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
 
 /* ── BADGE ───────────────────────────────────────────────────── */
 .badge{display:inline-block;padding:.15rem .45rem;border-radius:4px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-family:'JetBrains Mono'}
@@ -158,7 +188,7 @@ input[type=range]::-webkit-slider-thumb {
 .badge-amber{background:rgba(250,204,21,.12);color:var(--warn)}
 .badge-red{background:rgba(248,113,113,.12);color:var(--bad)}
 .badge-blue{background:rgba(96,165,250,.12);color:var(--info)}
-.badge-white{background:rgba(255,255,255,.1);color:var(--text2)}
+.badge-white{background:var(--glass3);color:var(--text2)}
 
 /* ── REGION PILLS ────────────────────────────────────────────── */
 .region-filter-wrap{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.1rem}
@@ -170,7 +200,7 @@ input[type=range]::-webkit-slider-thumb {
   font-weight:400;
 }
 .region-pill:hover{border-color:var(--border3);color:var(--text)}
-.region-pill.active{background:var(--text);border-color:var(--text);color:#000;font-weight:600}
+.region-pill.active{background:var(--text);border-color:var(--text);color:var(--bg);font-weight:600}
 
 /* ── CALCULATOR ──────────────────────────────────────────────── */
 .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
@@ -180,7 +210,7 @@ input[type=range]::-webkit-slider-thumb {
 .mode-label{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:.4rem}
 .mode-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .mode-share-val{font-size:12px;color:var(--text);text-align:right;font-family:'JetBrains Mono';font-weight:500}
-.calc-btn{width:100%;padding:.7rem;background:var(--text);border:none;color:#000;font-family:'Inter';font-size:13px;font-weight:700;letter-spacing:.05em;border-radius:8px;cursor:pointer;transition:all .15s;margin-top:.7rem}
+.calc-btn{width:100%;padding:.7rem;background:var(--text);border:none;color:var(--bg);font-family:'Inter';font-size:13px;font-weight:700;letter-spacing:.05em;border-radius:8px;cursor:pointer;transition:all .15s;margin-top:.7rem}
 .calc-btn:hover{background:var(--text2);transform:translateY(-1px)}
 .result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:.9rem}
 .result-card{background:var(--glass2);border:1px solid var(--border);border-radius:10px;padding:.9rem;text-align:center}
@@ -209,7 +239,7 @@ input[type=range]::-webkit-slider-thumb {
 .import-sub{font-size:12px;color:var(--text4);margin-bottom:1.4rem}
 .import-btn{
   display:inline-block;padding:.55rem 1.4rem;
-  background:var(--text);color:#000;
+  background:var(--text);color:var(--bg);
   font-weight:600;font-size:13px;border-radius:8px;cursor:pointer;
   transition:all .15s;border:none;
 }
@@ -264,6 +294,7 @@ input[type=range]::-webkit-slider-thumb {
     <div class="nav">
       <div class="nav-section">Explore</div>
       <div class="nav-item active" data-page="global"><span class="nav-dot"></span>Global Stats</div>
+      <div class="nav-section" style="margin-top:.75rem">Emission analysis of EU</div>
       <div class="nav-item" data-page="sensitivity"><span class="nav-dot"></span>Sensitivity</div>
       <div class="nav-item" data-page="compare"><span class="nav-dot"></span>Country Compare</div>
       <div class="nav-item" data-page="modal"><span class="nav-dot"></span>Modal Split</div>
@@ -272,6 +303,17 @@ input[type=range]::-webkit-slider-thumb {
       <div class="nav-item" data-page="calculator"><span class="nav-dot"></span>Calculator</div>
       <div class="nav-item" data-page="import"><span class="nav-dot"></span>Import Dataset</div>
       <div class="nav-item" data-page="aipredict"><span class="nav-dot"></span>AI Prediction</div>
+      <div style="margin-top:auto"></div>
+      <label class="nav-item" style="cursor:pointer; justify-content:space-between; padding-right:1.3rem;">
+        <div style="display:flex; align-items:center; gap:.6rem;">
+          <span class="nav-dot" style="background:var(--text)"></span>Theme
+        </div>
+        <div class="theme-switch" style="width:34px; height:20px; border-radius:20px; background:var(--border2); position:relative; flex-shrink:0;">
+          <div class="theme-knob" style="width:14px; height:14px; border-radius:50%; background:var(--text); position:absolute; top:3px; left:3px; transition:all 0.25s;"></div>
+        </div>
+        <input type="checkbox" style="display:none;" onchange="toggleTheme(this)">
+      </label>
+      <a href="index.html" class="nav-item" style="text-decoration:none"><span class="nav-dot" style="background:var(--bad)"></span>Sign Out</a>
     </div>
     <div class="status-bar">
       <span class="status-dot"></span>
@@ -323,7 +365,7 @@ input[type=range]::-webkit-slider-thumb {
     <!-- ═══════════ SENSITIVITY ═══════════ -->
     <section class="page" id="page-sensitivity">
       <div class="page-eyebrow">02 · Elasticity</div>
-      <h1 class="page-title">Mode <em>Impact Matrix</em></h1>
+      <h1 class="page-title">Mode <em>Impact Matrix</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-label" style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:.4rem">Filter by Region</div>
       <div class="region-filter-wrap" id="sens-region-pills"></div>
       <div class="ctrl-row">
@@ -355,7 +397,7 @@ input[type=range]::-webkit-slider-thumb {
     <!-- ═══════════ COUNTRY COMPARE ═══════════ -->
     <section class="page" id="page-compare">
       <div class="page-eyebrow">03 · Cross-Country</div>
-      <h1 class="page-title">Country <em>Comparison</em></h1>
+      <h1 class="page-title">Country <em>Comparison</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-row">
         <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="compare-year"></select></div>
         <div class="ctrl-group"><div class="ctrl-label">Metric</div>
@@ -372,10 +414,7 @@ input[type=range]::-webkit-slider-thumb {
         </div>
         <div class="ctrl-group"><div class="ctrl-label">Show Top N</div>
           <select id="compare-topn">
-            <option value="10">Top 10</option>
-            <option value="30" selected>Top 30</option>
-            <option value="50">Top 50</option>
-            <option value="100">Top 100</option>
+            <option value="10" selected>Top 10</option>
             <option value="0">All Countries</option>
           </select>
         </div>
@@ -400,15 +439,12 @@ input[type=range]::-webkit-slider-thumb {
     <!-- ═══════════ MODAL SPLIT ═══════════ -->
     <section class="page" id="page-modal">
       <div class="page-eyebrow">04 · Transport Modes</div>
-      <h1 class="page-title">Modal <em>Split Analysis</em></h1>
+      <h1 class="page-title">Modal <em>Split Analysis</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-row">
         <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="modal-year"></select></div>
         <div class="ctrl-group"><div class="ctrl-label">Show Top N Countries</div>
           <select id="modal-topn">
-            <option value="10">Top 10</option>
-            <option value="30" selected>Top 30</option>
-            <option value="50">Top 50</option>
-            <option value="100">Top 100</option>
+            <option value="10" selected>Top 10</option>
             <option value="0">All Countries</option>
           </select>
         </div>
@@ -433,7 +469,7 @@ input[type=range]::-webkit-slider-thumb {
     <!-- ═══════════ TIME SERIES ═══════════ -->
     <section class="page" id="page-timeseries">
       <div class="page-eyebrow">05 · Time Series</div>
-      <h1 class="page-title">Year-by-Year <em>Animation</em></h1>
+      <h1 class="page-title">Year-by-Year <em>Animation</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="anim-controls">
         <button class="anim-btn" id="anim-play-btn" onclick="toggleAnimation()">▶ PLAY</button>
         <div class="anim-year-display" id="anim-year-label">2010</div>
@@ -445,14 +481,15 @@ input[type=range]::-webkit-slider-thumb {
         <div class="ctrl-group"><div class="ctrl-label">Metric</div>
           <select id="anim-metric" onchange="renderAnimFrame()" style="min-width:150px">
             <option value="co2">CO₂ per Capita/Day</option><option value="green">Green Score</option>
-            <option value="fossil">Fossil Fuel %</option><option value="ev">Electric Car Share</option>
+            <option value="fossil">Fossil Fuel %</option><option value="ev">Electric Vehicles Share</option>
           </select></div>
         <div class="ctrl-group"><div class="ctrl-label">Region</div>
           <select id="anim-region" onchange="renderAnimFrame()" style="min-width:130px">
-            <option value="ALL">All Regions</option><option value="Europe">Europe</option>
+            <option value="Europe" selected>Europe</option>
             <option value="Asia">Asia</option><option value="Africa">Africa</option>
             <option value="North America">North America</option><option value="South America">South America</option>
             <option value="Oceania">Oceania</option>
+            <option value="Antarctica">Antarctica</option>
           </select></div>
       </div>
       <div class="chart-box" style="margin-bottom:.8rem">
@@ -477,10 +514,10 @@ input[type=range]::-webkit-slider-thumb {
     <!-- ═══════════ CALCULATOR ═══════════ -->
     <section class="page" id="page-calculator">
       <div class="page-eyebrow">06 · Tools</div>
-      <h1 class="page-title">Emission <em>Calculator</em></h1>
+      <h1 class="page-title">Emission <em>Calculator</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-row">
-        <div class="ctrl-group"><div class="ctrl-label">Country</div><select id="calc-country"></select></div>
-        <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="calc-year"></select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Place</div><input type="text" id="calc-place" value="My City" style="width:160px"></div>
+        <div class="ctrl-group"><div class="ctrl-label">Year</div><input type="number" id="calc-year" value="2025" style="width:80px"></div>
         <div class="ctrl-group"><div class="ctrl-label">Distance (km/trip)</div><input type="number" id="calc-dist" value="12" min="1" max="500" style="width:80px"></div>
         <div class="ctrl-group"><div class="ctrl-label">Trips / Day</div><input type="number" id="calc-trips" value="2" min="1" max="20" style="width:70px"></div>
         <div class="ctrl-group"><div class="ctrl-label">Population</div><input type="number" id="calc-pop" value="1000000" min="1000" style="width:110px"></div>
@@ -512,7 +549,13 @@ input[type=range]::-webkit-slider-thumb {
           <div class="chart-box"><div class="chart-title">Green vs Fossil Split</div><canvas id="chart-result-split" height="250"></canvas></div>
         </div>
         <div class="tbl-wrap">
-          <div class="tbl-head">Detailed Results</div>
+          <div class="tbl-head" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Detailed Results</span>
+            <div style="display:flex;gap:10px">
+              <button class="calc-btn" onclick="exportCalcCSV()" style="padding:0.4rem 1rem;font-size:12px;width:auto">Export CSV</button>
+              <button class="calc-btn" onclick="exportCalcPDF()" style="padding:0.4rem 1rem;font-size:12px;width:auto">Export PDF</button>
+            </div>
+          </div>
           <table><thead><tr><th>Metric</th><th>Value</th><th>Notes</th></tr></thead>
           <tbody id="result-table"></tbody></table>
         </div>
@@ -522,7 +565,7 @@ input[type=range]::-webkit-slider-thumb {
     <!-- ═══════════ IMPORT DATASET ═══════════ -->
     <section class="page" id="page-import">
       <div class="page-eyebrow">07 · Data</div>
-      <h1 class="page-title">Import <em>Dataset</em></h1>
+      <h1 class="page-title">Import <em>Dataset</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(this)">
       <div class="import-zone" id="import-zone"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -569,7 +612,7 @@ input[type=range]::-webkit-slider-thumb {
     <!-- ═══════════ AI PREDICTION ═══════════ -->
     <section class="page" id="page-aipredict">
       <div class="page-eyebrow">08 · Intelligence</div>
-      <h1 class="page-title">AI <em>Prediction</em></h1>
+      <h1 class="page-title">AI <em>Prediction</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
 
       <div class="chart-box" style="margin-bottom:1.6rem;max-width:780px">
         <div style="font-size:13px;color:var(--text3);line-height:1.9">
@@ -605,7 +648,7 @@ input[type=range]::-webkit-slider-thumb {
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Google Gemini</div>
             <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Best for real-time web-grounded transport research and policy analysis across countries.</div>
-            <a href="https://gemini.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Gemini →</a>
+            <a href="https://gemini.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:var(--bg);font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='var(--text2)'" onmouseout="this.style.background='var(--text)'">Open Gemini →</a>
           </div>
         </div>
 
@@ -614,7 +657,7 @@ input[type=range]::-webkit-slider-thumb {
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">ChatGPT</div>
             <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Use GPT-4o to model modal shift scenarios, predict green score improvements, or draft transport policy briefs.</div>
-            <a href="https://chatgpt.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open ChatGPT →</a>
+            <a href="https://chatgpt.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:var(--bg);font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='var(--text2)'" onmouseout="this.style.background='var(--text)'">Open ChatGPT →</a>
           </div>
         </div>
 
@@ -623,7 +666,7 @@ input[type=range]::-webkit-slider-thumb {
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Claude</div>
             <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Upload your exported JSON data directly to Claude for deep analysis, chart interpretation, and emission reduction planning.</div>
-            <a href="https://claude.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Claude →</a>
+            <a href="https://claude.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:var(--bg);font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='var(--text2)'" onmouseout="this.style.background='var(--text)'">Open Claude →</a>
           </div>
         </div>
 
@@ -632,7 +675,7 @@ input[type=range]::-webkit-slider-thumb {
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Microsoft Copilot</div>
             <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Integrated with Bing search — great for finding current emission statistics and cross-referencing with live data.</div>
-            <a href="https://copilot.microsoft.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Copilot →</a>
+            <a href="https://copilot.microsoft.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:var(--bg);font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='var(--text2)'" onmouseout="this.style.background='var(--text)'">Open Copilot →</a>
           </div>
         </div>
 
@@ -641,7 +684,7 @@ input[type=range]::-webkit-slider-thumb {
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Perplexity</div>
             <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">AI-powered search for latest research on urban transport emissions, green mobility, and city decarbonisation with citations.</div>
-            <a href="https://www.perplexity.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Perplexity →</a>
+            <a href="https://www.perplexity.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:var(--bg);font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='var(--text2)'" onmouseout="this.style.background='var(--text)'">Open Perplexity →</a>
           </div>
         </div>
 
@@ -650,7 +693,7 @@ input[type=range]::-webkit-slider-thumb {
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">NotebookLM</div>
             <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Upload transport research papers alongside your dataset to generate summaries, Q&A sessions, and audio briefings.</div>
-            <a href="https://notebooklm.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open NotebookLM →</a>
+            <a href="https://notebooklm.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:var(--bg);font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='var(--text2)'" onmouseout="this.style.background='var(--text)'">Open NotebookLM →</a>
           </div>
         </div>
 
@@ -662,12 +705,18 @@ input[type=range]::-webkit-slider-thumb {
 </div>
 
 <script>
+function mLab(m){ return m === 'ElectricCar' ? 'Electric Vehicles' : m; }
+function toggleTheme(cb){
+  document.documentElement.classList.toggle('light-mode', cb.checked);
+  const knob = document.querySelector('.theme-knob');
+  if(knob) knob.style.transform = cb.checked ? 'translateX(14px)' : 'translateX(0)';
+}
 const EMISSION_FACTORS={Car:0.171,Motorcycle:0.103,Bus:0.089,Rail:0.041,ElectricCar:0.047,Walking:0.0,Cycling:0.0};
 
 let RAW=[],COUNTRIES=[],ALL_YEARS=[],MODES=[];
 let charts={},calcDonutChart=null;
 let animFrame=0,animTimer=null,animPlaying=false;
-const regionState={sens:'ALL',compare:'ALL',modal:'ALL'};
+const regionState={sens:'Europe',compare:'Europe',modal:'Europe'};
 
 const CONTINENT_COLORS={
   'Asia':         {solid:'rgba(248,113,113,.8)', line:'#f87171'},
@@ -725,36 +774,43 @@ function latestData(fn){const ly=latestYear();return RAW.filter(r=>r.year===ly&&
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function topMode(ms){return Object.entries(ms).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-';}
 function countryColor(c,list){return CITY_PALETTE[(list||COUNTRIES).indexOf(c)%CITY_PALETTE.length]||CITY_PALETTE[0];}
-function allContinents(){return[...new Set(RAW.map(r=>r.continent))].sort();}
+function allContinents(){return ['Africa','Antarctica','Asia','Europe','North America','Oceania','South America'];}
 
 function baseOpts(extra){
+  const tColor=getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3';
   return{responsive:true,animation:{duration:400},
     plugins:{legend:{display:false},...(extra||{})},
     scales:{
-      x:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9},maxRotation:55},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+      x:{ticks:{color:tColor,font:{family:'JetBrains Mono',size:9},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
+      y:{ticks:{color:tColor,font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
     }};
 }
 function hBarOpts(){const o=baseOpts();o.indexAxis='y';o.scales.x.ticks.maxRotation=0;return o;}
 
 function populateSelectors(){
   const yrsRev=[...ALL_YEARS].reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
-  ['sens-country','calc-country'].forEach(id=>{
+  ['sens-country'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    el.innerHTML=COUNTRIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+    const eligible=regionState.sens==='ALL'?COUNTRIES:[...new Set(RAW.filter(r=>r.continent===regionState.sens).map(r=>r.country))].sort();
+    el.innerHTML=eligible.map(c=>`<option value="${c}">${c}</option>`).join('');
   });
-  ['sens-year','compare-year','modal-year','calc-year'].forEach(id=>{
+  ['sens-year','compare-year','modal-year'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     el.innerHTML=yrsRev;el.value=latestYear();
   });
+  const animSlider=document.getElementById('anim-year-slider');
+  if(animSlider && ALL_YEARS.length>0){
+    animSlider.max=ALL_YEARS.length-1;
+    document.getElementById('anim-year-label').textContent=ALL_YEARS[0];
+  }
 }
 
 function buildRegionPills(){
-  const conts=['ALL',...allContinents()];
+  const conts=allContinents();
   ['sens','compare','modal'].forEach(page=>{
     const wrap=document.getElementById(`${page}-region-pills`);if(!wrap)return;
-    wrap.innerHTML=conts.map(c=>`<div class="region-pill${c==='ALL'?' active':''}"
-      data-page="${page}" data-cont="${c}" onclick="onRegionPill(this)">${c==='ALL'?'All Regions':c}</div>`).join('');
+    wrap.innerHTML=conts.map(c=>`<div class="region-pill${c==='Europe'?' active':''}"
+      data-page="${page}" data-cont="${c}" onclick="onRegionPill(this)">${c}</div>`).join('');
   });
 }
 
@@ -778,11 +834,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   ['compare-year','compare-metric','compare-topn'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCompare));
   document.getElementById('modal-year')?.addEventListener('change',renderModal);
   document.getElementById('modal-topn')?.addEventListener('change',renderModal);
-  document.getElementById('calc-country')?.addEventListener('change',onCalcChange);
-  document.getElementById('calc-year')?.addEventListener('change',onCalcChange);
-  document.querySelectorAll('.nav-item').forEach(item=>{
+  document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
     item.addEventListener('click',()=>{
-      document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+      document.querySelectorAll('.nav-item[data-page]').forEach(i=>i.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       item.classList.add('active');
       document.getElementById('page-'+item.dataset.page)?.classList.add('active');
@@ -797,7 +851,7 @@ function dispatchPage(p){
   if(p==='compare')renderCompare();
   if(p==='modal')renderModal();
   if(p==='timeseries')renderAnimFrame();
-  if(p==='calculator')onCalcChange();
+  if(p==='calculator')initCalculator();
 }
 
 // ── GLOBAL ───────────────────────────────────────────────────────────────────
@@ -812,7 +866,7 @@ function renderGlobal(){
     <div class="card"><div class="card-label">Avg Green Score</div><div class="card-value good">${avgGreen.toFixed(1)}%</div><div class="card-sub">green mode share</div></div>`;
 
   const conts=allContinents();
-  const cd=conts.map(c=>{const r=data.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length,count:r.length};});
+  const cd=conts.map(c=>{const r=data.filter(d=>d.continent===c);return{c,avgCO2:r.length>0?r.reduce((s,d)=>s+d.co2,0)/r.length:0,avgGreen:r.length>0?r.reduce((s,d)=>s+d.greenScore,0)/r.length:0,count:r.length};});
   const co2S=[...cd].sort((a,b)=>b.avgCO2-a.avgCO2);
   destroyChart('global-co2');
   charts['global-co2']=new Chart(document.getElementById('chart-global-co2'),{type:'bar',
@@ -842,7 +896,7 @@ function renderGlobal(){
     <td class="num good">${d.greenScore.toFixed(1)}%</td>
     <td class="num ${d.fossilFuelShare>80?'bad':''}">${d.fossilFuelShare.toFixed(1)}%</td>
     <td>${d.motorisationRate.toFixed(1)}%</td>
-    <td><span class="badge badge-white">${topMode(d.modalSplit)}</span></td></tr>`).join('');
+    <td><span class="badge badge-white">${mLab(topMode(d.modalSplit))}</span></td></tr>`).join('');
 }
 
 // ── SENSITIVITY ───────────────────────────────────────────────────────────────
@@ -862,21 +916,21 @@ function _renderSensPanel(row,country,year,kpisId,tableId,co2Id,shiftId){
     <div class="card"><div class="card-label">CO₂/p/day</div><div class="card-value warn">${row.co2.toFixed(3)}</div><div class="card-sub">kg</div></div>
     <div class="card"><div class="card-label">Green Score</div><div class="card-value good">${row.greenScore.toFixed(1)}%</div><div class="card-sub">green share</div></div>
     <div class="card"><div class="card-label">Fossil Share</div><div class="card-value ${row.fossilFuelShare>70?'bad':'warn'}">${row.fossilFuelShare.toFixed(1)}%</div><div class="card-sub">fossil %</div></div>
-    <div class="card"><div class="card-label">Top Mode</div><div class="card-value" style="font-size:1.2rem">${topMode(row.modalSplit)}</div><div class="card-sub">${year}</div></div>`;
+    <div class="card"><div class="card-label">Top Mode</div><div class="card-value" style="font-size:1.2rem">${mLab(topMode(row.modalSplit))}</div><div class="card-sub">${year}</div></div>`;
   document.getElementById(tableId).innerHTML=modeStats.map(({m,share,ef,co2c})=>`
-    <tr><td class="name">${m}</td><td class="num">${share.toFixed(1)}%</td><td class="num">${co2c.toFixed(4)} kg</td><td class="num">${ef}</td>
+    <tr><td class="name">${mLab(m)}</td><td class="num">${share.toFixed(1)}%</td><td class="num">${co2c.toFixed(4)} kg</td><td class="num">${ef}</td>
     <td><span class="badge ${GREEN.includes(m)?'badge-green':FOSSIL.includes(m)?'badge-red':'badge-amber'}">${GREEN.includes(m)?'Green':FOSSIL.includes(m)?'Fossil':'Neutral'}</span></td>
     <td class="num ${co2c/totalCO2>.3?'bad':co2c/totalCO2>.15?'warn':'good'}">${totalCO2>0?(co2c/totalCO2*100).toFixed(1):0}%</td></tr>`).join('');
   destroyChart(co2Id);
   charts[co2Id]=new Chart(document.getElementById('chart-'+co2Id),{type:'bar',
-    data:{labels:modes,datasets:[{data:modeStats.map(s=>+s.co2c.toFixed(4)),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}]},options:baseOpts()});
+    data:{labels:modes.map(m=>mLab(m)),datasets:[{data:modeStats.map(s=>+s.co2c.toFixed(4)),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}]},options:{...baseOpts(),scales:{x:{ticks:{autoSkip:false,maxRotation:0,minRotation:0}}}}});
   const row0=getRow(country,ALL_YEARS[0]);
   destroyChart(shiftId);
   charts[shiftId]=new Chart(document.getElementById('chart-'+shiftId),{type:'bar',
-    data:{labels:modes,datasets:[
+    data:{labels:modes.map(m=>mLab(m)),datasets:[
       {label:String(ALL_YEARS[0]),data:modes.map(m=>row0?(row0.modalSplit[m]||0):0),backgroundColor:'rgba(255,255,255,.15)',borderWidth:0,borderRadius:4},
       {label:String(year),data:modes.map(m=>row.modalSplit[m]||0),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}
-    ]},options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}})}});
+    ]},options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}),scales:{x:{ticks:{autoSkip:false,maxRotation:0,minRotation:0}}}}});
 }
 
 // ── COMPARE ───────────────────────────────────────────────────────────────────
@@ -903,8 +957,8 @@ function renderCompare(){
       legend:{display:false},
       tooltip:{callbacks:{afterLabel:ctx=>`${sorted[ctx.dataIndex].continent}`}}
     }),responsive:true,maintainAspectRatio:false,scales:{
-      x:{ticks:{color:'#616161',font:{family:'JetBrains Mono',size:8},maxRotation:60},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+      x:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:10},autoSkip:false},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
+      y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
     }}});
   document.getElementById('compare-table').innerHTML=sorted.map((d,i)=>`
     <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
@@ -935,8 +989,8 @@ function renderModal(){
         backgroundColor:color,borderWidth:0,borderRadius:3,maxBarThickness:18}]},
       options:{...hBarOpts(),responsive:true,maintainAspectRatio:false,
         scales:{
-          x:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}},
-          y:{ticks:{color:'#a3a3a3',font:{family:'JetBrains Mono',size:10},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}}
+          x:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}},
+          y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:10},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}}
         }}});
   };
   const top=mode=>[...data].sort((a,b)=>(b.modalSplit[mode]||0)-(a.modalSplit[mode]||0)).slice(0,topN);
@@ -956,32 +1010,40 @@ function renderAnimFrame(fi){
   const year=ALL_YEARS[animFrame],metric=document.getElementById('anim-metric').value,region=document.getElementById('anim-region').value;
   document.getElementById('anim-year-label').textContent=year;
   document.getElementById('anim-year-slider').value=animFrame;
-  const mf={co2:{fn:d=>d.co2,label:'CO₂'},green:{fn:d=>d.greenScore,label:'Green Score'},fossil:{fn:d=>d.fossilFuelShare,label:'Fossil %'},ev:{fn:d=>d.modalSplit['ElectricCar']||0,label:'EV Share'}};
+  const mf={co2:{fn:d=>d.co2,label:'CO₂'},green:{fn:d=>d.greenScore,label:'Green Score'},fossil:{fn:d=>d.fossilFuelShare,label:'Fossil %'},ev:{fn:d=>d.modalSplit['ElectricCar']||0,label:'Electric Vehicles Share'}};
   const{fn,label}=mf[metric];
   document.getElementById('anim-chart-title').textContent=`${label} — ${year}`;
   let data=RAW.filter(r=>r.year===year);
   if(region!=='ALL')data=data.filter(r=>r.continent===region);
   const sorted=[...data].sort((a,b)=>fn(b)-fn(a)).slice(0,30);
-  const cf=d=>metric==='co2'?(d.co2>5?'rgba(248,113,113,.8)':d.co2>3?'rgba(250,204,21,.8)':'rgba(74,222,128,.8)'):'rgba(255,255,255,.55)';
+  const cf=d=>{if(metric!=='co2')return 'rgba(255,255,255,.55)';const h=Math.max(0,140-((d.co2||0)*20));return `hsla(${h},80%,55%,0.85)`;};
   if(charts['anim']){
     charts['anim'].data.labels=sorted.map(d=>d.country);
     charts['anim'].data.datasets[0].data=sorted.map(d=>+fn(d).toFixed(3));
     charts['anim'].data.datasets[0].backgroundColor=sorted.map(cf);
+    if(charts['anim'].options.scales&&charts['anim'].options.scales.x){
+      charts['anim'].options.scales.x.ticks.autoSkip=false;
+      charts['anim'].options.scales.x.ticks.maxRotation=45;
+      charts['anim'].options.scales.x.ticks.minRotation=45;
+    }
     charts['anim'].update('active');
   }else{
+    const opts = baseOpts();
+    opts.scales.x.ticks.autoSkip = false; opts.scales.x.ticks.maxRotation = 45; opts.scales.x.ticks.minRotation = 45;
+    opts.animation = {duration: 350};
     charts['anim']=new Chart(document.getElementById('chart-anim'),{type:'bar',
       data:{labels:sorted.map(d=>d.country),datasets:[{data:sorted.map(d=>+fn(d).toFixed(3)),backgroundColor:sorted.map(cf),borderWidth:0,borderRadius:4}]},
-      options:{...baseOpts(),animation:{duration:350}}});
+      options:opts});
   }
 }
 
 function renderAnimDelta(){
-  const deltas=COUNTRIES.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
+  const deltas=COUNTRIES.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2,continent:r0.continent};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
   const combined=[...deltas.slice(0,15),...deltas.slice(-15).reverse()];
   destroyChart('anim-delta');
   charts['anim-delta']=new Chart(document.getElementById('chart-anim-delta'),{type:'bar',
     data:{labels:combined.map(d=>d.country),datasets:[{data:combined.map(d=>+d.delta.toFixed(3)),
-      backgroundColor:combined.map(d=>d.delta>0?'rgba(248,113,113,.75)':'rgba(74,222,128,.75)'),borderWidth:0,borderRadius:3}]},options:baseOpts()});
+      backgroundColor:combined.map(d=>(CONTINENT_COLORS[d.continent]||{solid:'rgba(74,222,128,.75)'}).solid),borderWidth:0,borderRadius:3}]},options:baseOpts()});
 }
 
 function renderAnimAvg(){
@@ -1002,28 +1064,37 @@ function startAnimation(){
 function stopAnimation(){animPlaying=false;clearInterval(animTimer);document.getElementById('anim-play-btn').textContent='▶ PLAY';document.getElementById('anim-play-btn').classList.remove('playing');}
 
 // ── CALCULATOR ────────────────────────────────────────────────────────────────
-function onCalcChange(){
-  const row=getRow(document.getElementById('calc-country').value,+document.getElementById('calc-year').value);if(!row)return;
-  document.getElementById('calc-pop').value=row.population;
-  const modes=MODE_ORDER.filter(m=>row.modalSplit[m]!==undefined);
-  document.getElementById('mode-inputs').innerHTML=modes.map(m=>{const share=row.modalSplit[m]||0,color=MODE_COLORS[m]||'#888';
-    return`<div class="mode-row"><div class="mode-label"><span class="mode-dot" style="background:${color}"></span>${m}</div>
-    <input type="range" min="0" max="100" step="0.5" value="${share.toFixed(1)}" data-mode="${m}" oninput="onSlider(this)" style="accent-color:${color}">
+function initCalculator(){
+  if(document.getElementById('mode-inputs').innerHTML !== '') return;
+  const defaultModes = {Car:40, Motorcycle:10, Bus:10, Rail:10, ElectricCar:10, Walking:10, Cycling:10};
+  const modes=MODE_ORDER;
+  document.getElementById('mode-inputs').innerHTML=modes.map(m=>{const share=defaultModes[m]||0,color=MODE_COLORS[m]||'#888';
+    return`<div class="mode-row"><div class="mode-label"><span class="mode-dot" style="background:${color}"></span>${mLab(m)}</div>
+    <input type="range" min="0" max="100" step="0.5" value="${share.toFixed(1)}" data-mode="${m}" oninput="onSlider(this)" style="accent-color:${color}; --thumb-color:${color};">
     <div class="mode-share-val" id="sv-${m}">${share.toFixed(1)}%</div></div>`;}).join('');
   updateShareTotal();updateDonut();
 }
-function onSlider(el){const sv=document.getElementById(`sv-${el.dataset.mode}`);if(sv)sv.textContent=(+el.value).toFixed(1)+'%';updateShareTotal();updateDonut();}
+function onSlider(el){
+  let sumOther=0; document.querySelectorAll('#mode-inputs input[type=range]').forEach(s=>{ if(s!==el) sumOther+= +s.value; });
+  if(sumOther + (+el.value) > 100) el.value = Math.max(0, 100 - sumOther).toFixed(1);
+  const sv=document.getElementById(`sv-${el.dataset.mode}`);if(sv)sv.textContent=(+el.value).toFixed(1)+'%';updateShareTotal();updateDonut();
+}
 function updateShareTotal(){let t=0;document.querySelectorAll('#mode-inputs input[type=range]').forEach(s=>t+=+s.value);document.getElementById('share-total').textContent=t.toFixed(1);document.getElementById('share-warn').style.display=Math.abs(t-100)>5?'inline':'none';}
 function getCalcModeData(){return[...document.querySelectorAll('#mode-inputs input[type=range]')].map(s=>({mode:s.dataset.mode,share:+s.value,ef:EMISSION_FACTORS[s.dataset.mode]||0}));}
-function updateDonut(){
+ function updateDonut(){
   const md=getCalcModeData().filter(m=>m.share>0);
   if(calcDonutChart){calcDonutChart.destroy();calcDonutChart=null;}
   calcDonutChart=new Chart(document.getElementById('chart-calc-donut'),{type:'doughnut',
-    data:{labels:md.map(m=>m.mode),datasets:[{data:md.map(m=>+m.share.toFixed(1)),backgroundColor:md.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]},
+    data:{labels:md.map(m=>mLab(m.mode)),datasets:[{data:md.map(m=>+m.share.toFixed(1)),backgroundColor:md.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]},
     options:{responsive:true,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed.toFixed(1)}%`}}},animation:{duration:250}}});
-  document.getElementById('calc-legend').innerHTML=md.map(m=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:11px;color:var(--text3)"><span style="width:7px;height:7px;border-radius:50%;background:${MODE_COLORS[m.mode]||'#888'};flex-shrink:0"></span>${m.mode} ${m.share.toFixed(1)}%</div>`).join('');
+  document.getElementById('calc-legend').innerHTML=md.map(m=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:11px;color:var(--text3)"><span style="width:7px;height:7px;border-radius:50%;background:${MODE_COLORS[m.mode]||'#888'};flex-shrink:0"></span>${mLab(m.mode)} ${m.share.toFixed(1)}%</div>`).join('');
 }
 function runCalculation(){
+  let totShare=0; document.querySelectorAll('#mode-inputs input[type=range]').forEach(s=>totShare+=+s.value);
+  if(Math.abs(totShare-100)>0.2){
+    alert("Total modal distribution must equal exactly 100%. Currently it is " + totShare.toFixed(1) + "%. Please adjust the mode sliders first.");
+    return;
+  }
   const dist=+document.getElementById('calc-dist').value||12,tripsD=+document.getElementById('calc-trips').value||2,pop=+document.getElementById('calc-pop').value||1000000;
   const md=getCalcModeData(),GM=['Rail','ElectricCar','Walking','Cycling'],FM=['Car','Motorcycle'];
   let tot=0,gCO2=0,fCO2=0;
@@ -1037,20 +1108,75 @@ function runCalculation(){
   ].map(([l,v,u])=>`<div class="result-card"><div class="result-label">${l}</div><div class="result-val">${v}</div><div class="result-unit">${u}</div></div>`).join('');
   const nz=mr.filter(m=>m.share>0);
   const mkR=(id,type,data,opts)=>{destroyChart(id);charts[id]=new Chart(document.getElementById('chart-result-'+id),{type,...data,...opts});};
-  mkR('donut','doughnut',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.share.toFixed(1)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'60%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
-  mkR('bar','bar',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.co2Trip.toFixed(4)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
-  mkR('annual','bar',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.annual.toFixed(2)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
+  mkR('donut','doughnut',{data:{labels:nz.map(m=>mLab(m.mode)),datasets:[{data:nz.map(m=>+m.share.toFixed(1)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'60%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
+  mkR('bar','bar',{data:{labels:nz.map(m=>mLab(m.mode)),datasets:[{data:nz.map(m=>+m.co2Trip.toFixed(4)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
+  mkR('annual','bar',{data:{labels:nz.map(m=>mLab(m.mode)),datasets:[{data:nz.map(m=>+m.annual.toFixed(2)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
   const gT=nz.filter(m=>GM.includes(m.mode)).reduce((s,m)=>s+m.daily,0),fT=nz.filter(m=>FM.includes(m.mode)).reduce((s,m)=>s+m.daily,0);
   mkR('split','doughnut',{data:{labels:['Green','Fossil','Other'],datasets:[{data:[+gT.toFixed(4),+fT.toFixed(4),+(tot-gT-fT).toFixed(4)],backgroundColor:['rgba(74,222,128,.8)','rgba(248,113,113,.8)','rgba(250,204,21,.7)'],borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'55%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
   document.getElementById('result-table').innerHTML=[
-    ['Country',document.getElementById('calc-country').value,''],['Year',document.getElementById('calc-year').value,''],
+    ['Place',document.getElementById('calc-place').value,''],['Year',document.getElementById('calc-year').value,''],
     ['Distance',`${dist} km`,'per trip'],['Trips/Day',tripsD,''],['Population',pop.toLocaleString(),''],
     ['Daily CO₂',`${tot.toFixed(4)} kg`,'per person'],['Weekly CO₂',`${wk.toFixed(3)} kg`,''],
     ['Annual CO₂',`${ann.toFixed(2)} kg`,'per person'],['City Aggregate',`${city.toFixed(3)} Mt`,''],
-    ...nz.map(m=>[m.mode,`${m.co2Trip.toFixed(4)} kg/trip`,`ef=${m.ef}`])
+    ...nz.map(m=>[mLab(m.mode),`${m.co2Trip.toFixed(4)} kg/trip`,`ef=${m.ef}`])
   ].map(([k,v,n])=>`<tr><td>${k}</td><td class="num">${v}</td><td style="font-size:10px;color:var(--text4)">${n}</td></tr>`).join('');
   document.getElementById('calc-results').style.display='block';
   document.getElementById('calc-results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function exportCalcCSV() {
+  const place = document.getElementById('calc-place').value;
+  const year = document.getElementById('calc-year').value;
+  const dist = document.getElementById('calc-dist').value || 12;
+  const trips = document.getElementById('calc-trips').value || 2;
+  const pop = document.getElementById('calc-pop').value || 1000000;
+  
+  const md = [...document.querySelectorAll('#mode-inputs input[type=range]')].map(s => ({
+    mode: s.dataset.mode, share: +s.value, ef: EMISSION_FACTORS[s.dataset.mode] || 0
+  }));
+
+  const rows = [];
+  rows.push(['city','country','continent','population','year','transport_mode','modal_share_pct','avg_trip_km','daily_trips','emission_factor_co2_kg_per_pkm','emission_factor_nox_kg_per_pkm','emission_factor_pm10_kg_per_pkm','energy_intensity_MJ_per_pkm'].join(','));
+
+  const modeMap = {
+    'Car':'Car', 'Motorcycle':'Motorcycle', 'Bus':'Bus', 'Rail':'Rail',
+    'ElectricCar':'ElectricCar', 'Walking':'Walk', 'Cycling':'Bicycle'
+  };
+
+  md.forEach(m => {
+    if (m.share > 0) {
+      rows.push([
+        `"${place.replace(/"/g, '""')}"`,
+        `""`,
+        `""`,
+        pop,
+        year,
+        `"${modeMap[m.mode] || m.mode}"`,
+        m.share.toFixed(1),
+        dist,
+        trips,
+        m.ef,
+        0, 0, 0
+      ].join(','));
+    }
+  });
+
+  const link = document.createElement("a");
+  link.setAttribute("href", "data:text/csv;charset=utf-8," + encodeURIComponent(rows.join('\n')));
+  link.setAttribute("download", `emission_data_${place.replace(/\\s+/g,'_')}.csv`);
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+function exportCalcPDF() {
+  const w = window.open('', '', 'height=600,width=800');
+  const place = document.getElementById('calc-place').value;
+  w.document.write('<html><head><title>Emission Results - '+place+'</title>');
+  w.document.write('<style>body{font-family:sans-serif;padding:20px;color:#222}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f2f2f2}</style>');
+  w.document.write('<'+'/head><body><h2>Emission Calculator Results: '+place+'<'+'/h2>');
+  w.document.write('<table><thead><tr><th>Metric<'+'/th><th>Value<'+'/th><th>Notes<'+'/th><'+'/tr><'+'/thead><tbody>');
+  w.document.write(document.getElementById('result-table').innerHTML);
+  w.document.write('<'+'/tbody><'+'/table><'+'/body><'+'/html>');
+  w.document.close(); w.focus();
+  setTimeout(()=>{ w.print(); w.close(); }, 250);
 }
 
 // ── IMPORT DATASET ────────────────────────────────────────────────────────────
@@ -1129,7 +1255,7 @@ function renderImportDashboard(iRaw,iCountries,iYears){
     <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
     <td class="num ${d.co2>5?'bad':d.co2>3?'warn':'good'}">${d.co2.toFixed(3)}</td>
     <td class="num good">${d.greenScore.toFixed(1)}%</td>
-    <td><span class="badge badge-white">${topMode(d.modalSplit)}</span></td></tr>`).join('');
+    <td><span class="badge badge-white">${mLab(topMode(d.modalSplit))}</span></td></tr>`).join('');
 }
 
 // ── GLOBAL TREND ─────────────────────────────────────────────────────────────
