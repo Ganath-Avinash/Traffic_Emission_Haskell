@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TransportSense — Urban Emission Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080808;
+  --g1:rgba(255,255,255,.03);--g2:rgba(255,255,255,.06);--g3:rgba(255,255,255,.09);
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);--border3:rgba(255,255,255,.22);
+  --text:#ffffff;--text2:#d4d4d4;--text3:#a3a3a3;--text4:#616161;
+  --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.07);--glass3:rgba(255,255,255,.11);
+  --accent:#ffffff;--accent-dim:rgba(255,255,255,.7);
+  --good:#4ade80;--warn:#facc15;--bad:#f87171;--info:#60a5fa;
+  --sidebar:260px;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 70% 60% at 15% 0%,rgba(255,255,255,.025) 0%,transparent 55%),
+  radial-gradient(ellipse 50% 40% at 85% 100%,rgba(255,255,255,.018) 0%,transparent 55%);
+  pointer-events:none;z-index:0}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar);flex-shrink:0;
+  background:rgba(10,10,10,.92);
+  backdrop-filter:blur(24px) saturate(1.2);
+  -webkit-backdrop-filter:blur(24px);
+  border-right:1px solid var(--border);
+  position:fixed;top:0;left:0;bottom:0;
+  display:flex;flex-direction:column;z-index:200;overflow-y:auto;
+}
+.brand{padding:1.8rem 1.5rem 1.2rem;border-bottom:1px solid var(--border)}
+.brand-eyebrow{font-size:9px;letter-spacing:.35em;color:var(--text4);text-transform:uppercase;margin-bottom:.6rem;font-family:'JetBrains Mono'}
+.brand-name{font-family:'Inter';font-size:1.4rem;font-weight:700;color:var(--text);line-height:1.15;white-space:nowrap}
+.brand-name span{color:var(--text3)}
+.brand-sub{font-size:10px;color:var(--text4);margin-top:.4rem;letter-spacing:.04em}
+.nav{padding:.5rem 0;flex:1}
+.nav-section{padding:.7rem 1.5rem .25rem;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono'}
+.nav-item{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.6rem 1.5rem;cursor:pointer;
+  transition:all .15s;border-left:2px solid transparent;
+  font-size:13px;color:var(--text3);font-weight:400;
+  white-space:nowrap;
+}
+.nav-item:hover{background:var(--g2);color:var(--text);border-left-color:var(--border3)}
+.nav-item.active{background:var(--glass3);color:var(--text);border-left-color:var(--text)}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.6}
+.status-bar{padding:.75rem 1.5rem;border-top:1px solid var(--border);font-size:10px;color:var(--text4);font-family:'JetBrains Mono'}
+.status-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--good);margin-right:.45rem;animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── MAIN ────────────────────────────────────────────────────── */
+.main{margin-left:var(--sidebar);flex:1;min-height:100vh}
+
+/* ── LOADER ──────────────────────────────────────────────────── */
+#loader{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;transition:opacity .5s}
+#loader.out{opacity:0;pointer-events:none}
+.ld-title{font-size:2.2rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.ld-sub{font-size:10px;letter-spacing:.3em;color:var(--text4);font-family:'JetBrains Mono'}
+.ld-bar{width:160px;height:1px;background:var(--border);overflow:hidden;margin-top:.5rem}
+.ld-fill{height:100%;background:linear-gradient(90deg,transparent,var(--text),transparent);animation:slide 1.2s ease infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+
+/* ── PAGES ───────────────────────────────────────────────────── */
+.page{display:none;padding:2.4rem 3rem;min-height:100vh;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.page-eyebrow{font-size:9px;letter-spacing:.35em;text-transform:uppercase;color:var(--text4);margin-bottom:.55rem;font-family:'JetBrains Mono'}
+.page-title{font-size:2.2rem;font-weight:700;line-height:1.1;margin-bottom:1.8rem;color:var(--text);letter-spacing:-.025em;border-bottom:1px solid var(--border);padding-bottom:1.1rem}
+.page-title em{font-style:normal;color:var(--text3)}
+
+/* ── GLASS CARD ──────────────────────────────────────────────── */
+.cards{display:grid;gap:.8rem;margin-bottom:1.4rem}
+.cards-4{grid-template-columns:repeat(4,1fr)}
+.cards-3{grid-template-columns:repeat(3,1fr)}
+.card{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:12px;padding:1.25rem 1.4rem;
+  backdrop-filter:blur(12px);
+  transition:border-color .2s,background .2s;
+}
+.card:hover{border-color:var(--border2);background:var(--glass2)}
+.card-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);margin-bottom:.4rem;font-family:'JetBrains Mono'}
+.card-value{font-size:1.85rem;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1}
+.card-sub{font-size:11px;color:var(--text4);margin-top:.3rem}
+.card-value.good{color:var(--good)}
+.card-value.warn{color:var(--warn)}
+.card-value.bad{color:var(--bad)}
+
+/* ── CHART BOXES ─────────────────────────────────────────────── */
+.chart-grid{display:grid;gap:.8rem;margin-bottom:.8rem}
+.chart-grid-2{grid-template-columns:repeat(2,1fr)}
+.chart-box{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:12px;padding:1.4rem;margin-bottom:.8rem;
+  backdrop-filter:blur(12px);
+}
+.chart-title{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin-bottom:.2rem}
+.chart-sub{font-size:10px;color:var(--text4);margin-bottom:.9rem;font-family:'JetBrains Mono'}
+
+/* ── TABLE ───────────────────────────────────────────────────── */
+.tbl-wrap{background:var(--glass);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:.8rem}
+.tbl-head{padding:.75rem 1.4rem;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+table{width:100%;border-collapse:collapse}
+th{padding:.5rem 1rem;text-align:left;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border);font-weight:500;font-family:'JetBrains Mono'}
+td{padding:.5rem 1rem;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text3)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.03)}
+td.num{color:var(--text);font-family:'JetBrains Mono';font-size:11px}
+td.good{color:var(--good)}
+td.warn{color:var(--warn)}
+td.bad{color:var(--bad)}
+td.name{font-weight:500;color:var(--text)}
+
+/* ── CONTROLS ────────────────────────────────────────────────── */
+.ctrl-row{display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.2rem}
+.ctrl-group{display:flex;flex-direction:column;gap:.3rem}
+.ctrl-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono'}
+select,input[type=number]{
+  background:var(--glass2);border:1px solid var(--border2);
+  color:var(--text);padding:.42rem .75rem;
+  font-family:'Inter';font-size:12px;
+  border-radius:8px;outline:none;cursor:pointer;transition:all .15s;
+}
+select:focus,input:focus{border-color:var(--border3);background:var(--glass3);box-shadow:0 0 0 2px rgba(255,255,255,.06)}
+select{min-width:160px}
+select option{background:#141414;color:#ffffff;font-size:13px}
+input[type=range]{-webkit-appearance:none;height:2px;background:rgba(255,255,255,.12);border:none;border-radius:2px;outline:none;cursor:pointer;flex:1;min-width:100px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--text);cursor:pointer}
+
+/* ── BADGE ───────────────────────────────────────────────────── */
+.badge{display:inline-block;padding:.15rem .45rem;border-radius:4px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-family:'JetBrains Mono'}
+.badge-green{background:rgba(74,222,128,.12);color:var(--good)}
+.badge-amber{background:rgba(250,204,21,.12);color:var(--warn)}
+.badge-red{background:rgba(248,113,113,.12);color:var(--bad)}
+.badge-blue{background:rgba(96,165,250,.12);color:var(--info)}
+.badge-white{background:rgba(255,255,255,.1);color:var(--text2)}
+
+/* ── REGION PILLS ────────────────────────────────────────────── */
+.region-filter-wrap{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.region-pill{
+  padding:.3rem .75rem;border-radius:20px;
+  border:1px solid var(--border2);font-size:11px;
+  cursor:pointer;transition:all .15s;
+  color:var(--text3);background:var(--glass);
+  font-weight:400;
+}
+.region-pill:hover{border-color:var(--border3);color:var(--text)}
+.region-pill.active{background:var(--text);border-color:var(--text);color:#000;font-weight:600}
+
+/* ── CALCULATOR ──────────────────────────────────────────────── */
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
+.calc-panel{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:1.5rem;backdrop-filter:blur(12px)}
+.calc-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:.9rem;padding-bottom:.6rem;border-bottom:1px solid var(--border)}
+.mode-row{display:grid;grid-template-columns:120px 1fr 60px;gap:.7rem;align-items:center;margin-bottom:.7rem}
+.mode-label{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:.4rem}
+.mode-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mode-share-val{font-size:12px;color:var(--text);text-align:right;font-family:'JetBrains Mono';font-weight:500}
+.calc-btn{width:100%;padding:.7rem;background:var(--text);border:none;color:#000;font-family:'Inter';font-size:13px;font-weight:700;letter-spacing:.05em;border-radius:8px;cursor:pointer;transition:all .15s;margin-top:.7rem}
+.calc-btn:hover{background:var(--text2);transform:translateY(-1px)}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:.9rem}
+.result-card{background:var(--glass2);border:1px solid var(--border);border-radius:10px;padding:.9rem;text-align:center}
+.result-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text4);margin-bottom:.3rem;font-family:'JetBrains Mono'}
+.result-val{font-size:1.5rem;font-weight:700;color:var(--text)}
+.result-unit{font-size:10px;color:var(--text4)}
+
+/* ── TIME ANIMATION ──────────────────────────────────────────── */
+.anim-controls{display:flex;align-items:center;gap:.9rem;margin-bottom:1rem;padding:.75rem 1.2rem;background:var(--glass);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap}
+.anim-year-display{font-size:1.8rem;font-weight:700;color:var(--text);letter-spacing:-.02em;min-width:70px;font-family:'JetBrains Mono'}
+.anim-btn{background:var(--glass2);border:1px solid var(--border2);color:var(--text2);padding:.38rem .85rem;font-family:'JetBrains Mono';font-size:11px;border-radius:6px;cursor:pointer;transition:all .15s}
+.anim-btn:hover{background:var(--glass3);color:var(--text)}
+.anim-btn.playing{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--bad)}
+.anim-slider{flex:1;accent-color:var(--text)}
+
+/* ── IMPORT DATASET PAGE ─────────────────────────────────────── */
+.import-zone{
+  border:2px dashed var(--border2);border-radius:16px;
+  padding:3.5rem 2rem;text-align:center;
+  background:var(--glass);cursor:pointer;
+  transition:all .2s;margin-bottom:1.4rem;
+}
+.import-zone:hover,.import-zone.drag-over{border-color:var(--border3);background:var(--glass2)}
+.import-icon{font-size:2.5rem;margin-bottom:.9rem;opacity:.5}
+.import-title{font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.4rem}
+.import-sub{font-size:12px;color:var(--text4);margin-bottom:1.4rem}
+.import-btn{
+  display:inline-block;padding:.55rem 1.4rem;
+  background:var(--text);color:#000;
+  font-weight:600;font-size:13px;border-radius:8px;cursor:pointer;
+  transition:all .15s;border:none;
+}
+.import-btn:hover{background:var(--text2);transform:translateY(-1px)}
+.import-or{font-size:11px;color:var(--text4);margin:.8rem 0}
+.import-status{font-size:12px;color:var(--text3);margin-top:.6rem;min-height:1.2rem;font-family:'JetBrains Mono'}
+.mini-dashboard{display:none}
+.mini-section{margin-bottom:2rem}
+.mini-section-title{font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:.8rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+
+/* ── AI PREDICTION PAGE ──────────────────────────────────────── */
+.ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.ai-card{
+  background:var(--glass);border:1px solid var(--border);border-radius:14px;
+  padding:1.8rem 1.5rem;text-align:center;cursor:pointer;
+  transition:all .2s;text-decoration:none;display:block;
+}
+.ai-card:hover{background:var(--glass2);border-color:var(--border2);transform:translateY(-3px)}
+.ai-card-icon{font-size:2.2rem;margin-bottom:.9rem}
+.ai-card-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:.35rem}
+.ai-card-desc{font-size:11px;color:var(--text4);line-height:1.5}
+.ai-disclaimer{font-size:11px;color:var(--text4);text-align:center;padding:.8rem;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono'}
+
+.modal-chart-wrap{position:relative;width:100%;overflow:hidden}
+.modal-chart-wrap canvas{display:block;width:100%!important}
+@media(max-width:960px){
+  :root{--sidebar:0px}
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .cards-4{grid-template-columns:repeat(2,1fr)}
+  .chart-grid-2{grid-template-columns:1fr}
+  .calc-grid{grid-template-columns:1fr}
+  .ai-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="ld-title">TransportSense</div>
+  <div class="ld-sub">LOADING GLOBAL DATASET</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+</div>
+
+<div class="shell">
+  <nav class="sidebar">
+    <div class="brand">
+      <div class="brand-eyebrow">Urban Analytics</div>
+      <div class="brand-name">Transport<span>Sense</span></div>
+      <div class="brand-sub">Emission Intelligence Platform</div>
+    </div>
+    <div class="nav">
+      <div class="nav-section">Explore</div>
+      <div class="nav-item active" data-page="global"><span class="nav-dot"></span>Global Stats</div>
+      <div class="nav-item" data-page="sensitivity"><span class="nav-dot"></span>Sensitivity</div>
+      <div class="nav-item" data-page="compare"><span class="nav-dot"></span>Country Compare</div>
+      <div class="nav-item" data-page="modal"><span class="nav-dot"></span>Modal Split</div>
+      <div class="nav-item" data-page="timeseries"><span class="nav-dot"></span>Time Animation</div>
+      <div class="nav-section">Tools</div>
+      <div class="nav-item" data-page="calculator"><span class="nav-dot"></span>Calculator</div>
+      <div class="nav-item" data-page="import"><span class="nav-dot"></span>Import Dataset</div>
+      <div class="nav-item" data-page="aipredict"><span class="nav-dot"></span>AI Prediction</div>
+    </div>
+    <div class="status-bar">
+      <span class="status-dot"></span>
+      <span id="status-text">Loading…</span>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ═══════════ GLOBAL STATS ═══════════ -->
+    <section class="page active" id="page-global">
+      <div class="page-eyebrow">01 · World View</div>
+      <h1 class="page-title">Global <em>Statistics</em></h1>
+      <div class="cards cards-4" id="global-kpis"></div>
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-box">
+          <div class="chart-title">CO₂ by Continent (Latest Year)</div>
+          <div class="chart-sub">Average kg CO₂ / person / day per continent</div>
+          <canvas id="chart-global-co2" height="240"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Green Score by Continent</div>
+          <div class="chart-sub">Average Rail + EV + Cycling + Walking share %</div>
+          <canvas id="chart-global-green" height="240"></canvas>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">CO₂ Trend Over Years (2010–2025)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem">
+          <div class="chart-sub" style="margin-bottom:0">Average CO₂ per continent — one line per region</div>
+          <div class="ctrl-group" style="flex-direction:row;align-items:center;gap:.5rem">
+            <div class="ctrl-label" style="margin:0">Continent</div>
+            <select id="trend-continent" onchange="renderGlobalTrend()" style="min-width:150px">
+              <option value="ALL">All Continents</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="chart-trend" height="160"></canvas>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">All Countries — Latest Year Summary</div>
+        <table><thead><tr>
+          <th>#</th><th>Country</th><th>Continent</th>
+          <th>CO₂/p/day</th><th>Green %</th><th>Fossil %</th><th>Motorisation</th><th>Top Mode</th>
+        </tr></thead><tbody id="global-table"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ═══════════ SENSITIVITY ═══════════ -->
+    <section class="page" id="page-sensitivity">
+      <div class="page-eyebrow">02 · Elasticity</div>
+      <h1 class="page-title">Mode <em>Impact Matrix</em></h1>
+      <div class="ctrl-label" style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:.4rem">Filter by Region</div>
+      <div class="region-filter-wrap" id="sens-region-pills"></div>
+      <div class="ctrl-row">
+        <div class="ctrl-group"><div class="ctrl-label">Country</div><select id="sens-country"></select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="sens-year"></select></div>
+      </div>
+      <div class="cards cards-4" id="sens-kpis"></div>
+      <div class="tbl-wrap" style="margin-bottom:.8rem">
+        <div class="tbl-head">Modal Sensitivity — CO₂ impact per mode</div>
+        <table><thead><tr>
+          <th>Mode</th><th>Share %</th><th>CO₂ Contrib.</th>
+          <th>Emission Factor</th><th>Type</th><th>Impact Level</th>
+        </tr></thead><tbody id="sens-table"></tbody></table>
+      </div>
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-box">
+          <div class="chart-title">CO₂ Contribution by Mode</div>
+          <div class="chart-sub">Estimated daily CO₂ share per transport mode</div>
+          <canvas id="chart-sens-co2" height="230"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Modal Share — First vs Selected Year</div>
+          <div class="chart-sub">2010 baseline vs selected year comparison</div>
+          <canvas id="chart-sens-shift" height="230"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ COUNTRY COMPARE ═══════════ -->
+    <section class="page" id="page-compare">
+      <div class="page-eyebrow">03 · Cross-Country</div>
+      <h1 class="page-title">Country <em>Comparison</em></h1>
+      <div class="ctrl-row">
+        <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="compare-year"></select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Metric</div>
+          <select id="compare-metric">
+            <option value="co2">CO₂ per Capita/Day</option>
+            <option value="green">Green Score</option>
+            <option value="fossil">Fossil Fuel %</option>
+            <option value="car">Car Share %</option>
+            <option value="rail">Rail Share %</option>
+            <option value="cycling">Cycling Share %</option>
+            <option value="walking">Walking Share %</option>
+            <option value="ev">Electric Car Share %</option>
+          </select>
+        </div>
+        <div class="ctrl-group"><div class="ctrl-label">Show Top N</div>
+          <select id="compare-topn">
+            <option value="10">Top 10</option>
+            <option value="30" selected>Top 30</option>
+            <option value="50">Top 50</option>
+            <option value="100">Top 100</option>
+            <option value="0">All Countries</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctrl-label" style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:.4rem">Filter by Region</div>
+      <div class="region-filter-wrap" id="compare-region-pills"></div>
+      <div class="chart-box">
+        <div class="chart-title" id="compare-chart-title">CO₂ Per Capita</div>
+        <div style="position:relative;height:320px">
+          <canvas id="chart-compare"></canvas>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">Detailed Comparison Table</div>
+        <table><thead><tr>
+          <th>#</th><th>Country</th><th>Continent</th><th>CO₂/p/d</th>
+          <th>Annual CO₂</th><th>Green %</th><th>Fossil %</th><th>Motorisation</th>
+        </tr></thead><tbody id="compare-table"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ═══════════ MODAL SPLIT ═══════════ -->
+    <section class="page" id="page-modal">
+      <div class="page-eyebrow">04 · Transport Modes</div>
+      <h1 class="page-title">Modal <em>Split Analysis</em></h1>
+      <div class="ctrl-row">
+        <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="modal-year"></select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Show Top N Countries</div>
+          <select id="modal-topn">
+            <option value="10">Top 10</option>
+            <option value="30" selected>Top 30</option>
+            <option value="50">Top 50</option>
+            <option value="100">Top 100</option>
+            <option value="0">All Countries</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctrl-label" style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:.4rem">Filter by Region</div>
+      <div class="region-filter-wrap" id="modal-region-pills"></div>
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-box"><div class="chart-title">Car Share Rankings</div><div class="modal-chart-wrap" id="wrap-car-rank"><canvas id="chart-car-rank"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title">Rail Share Rankings</div><div class="modal-chart-wrap" id="wrap-rail-rank"><canvas id="chart-rail-rank"></canvas></div></div>
+      </div>
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-box"><div class="chart-title">Bus Share Rankings</div><div class="modal-chart-wrap" id="wrap-bus-rank"><canvas id="chart-bus-rank"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title">Motorcycle Share Rankings</div><div class="modal-chart-wrap" id="wrap-moto-rank"><canvas id="chart-moto-rank"></canvas></div></div>
+      </div>
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-box"><div class="chart-title">Walking Share Rankings</div><div class="modal-chart-wrap" id="wrap-walk-rank"><canvas id="chart-walk-rank"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title">Cycling Share Rankings</div><div class="modal-chart-wrap" id="wrap-cycle-rank"><canvas id="chart-cycle-rank"></canvas></div></div>
+      </div>
+      <div class="chart-box"><div class="chart-title">Electric Vehicle Adoption</div><div class="modal-chart-wrap" id="wrap-ev-adopt"><canvas id="chart-ev-adopt"></canvas></div></div>
+    </section>
+
+    <!-- ═══════════ TIME SERIES ═══════════ -->
+    <section class="page" id="page-timeseries">
+      <div class="page-eyebrow">05 · Time Series</div>
+      <h1 class="page-title">Year-by-Year <em>Animation</em></h1>
+      <div class="anim-controls">
+        <button class="anim-btn" id="anim-play-btn" onclick="toggleAnimation()">▶ PLAY</button>
+        <div class="anim-year-display" id="anim-year-label">2010</div>
+        <input type="range" class="anim-slider" id="anim-year-slider" min="0" max="15" value="0" oninput="onAnimSlider(this.value)">
+        <div class="ctrl-group"><div class="ctrl-label">Speed</div>
+          <select id="anim-speed" style="min-width:90px">
+            <option value="1200">Slow</option><option value="700" selected>Normal</option><option value="350">Fast</option>
+          </select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Metric</div>
+          <select id="anim-metric" onchange="renderAnimFrame()" style="min-width:150px">
+            <option value="co2">CO₂ per Capita/Day</option><option value="green">Green Score</option>
+            <option value="fossil">Fossil Fuel %</option><option value="ev">Electric Car Share</option>
+          </select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Region</div>
+          <select id="anim-region" onchange="renderAnimFrame()" style="min-width:130px">
+            <option value="ALL">All Regions</option><option value="Europe">Europe</option>
+            <option value="Asia">Asia</option><option value="Africa">Africa</option>
+            <option value="North America">North America</option><option value="South America">South America</option>
+            <option value="Oceania">Oceania</option>
+          </select></div>
+      </div>
+      <div class="chart-box" style="margin-bottom:.8rem">
+        <div class="chart-title" id="anim-chart-title">CO₂ per Capita — 2010</div>
+        <div class="chart-sub">Animated bar chart — use play button or drag slider</div>
+        <canvas id="chart-anim" height="180"></canvas>
+      </div>
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-box">
+          <div class="chart-title">CO₂ Change 2010→2025</div>
+          <div class="chart-sub">Biggest absolute CO₂ change (kg/p/day)</div>
+          <canvas id="chart-anim-delta" height="260"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Global Average Trend</div>
+          <div class="chart-sub">Average across all countries per year</div>
+          <canvas id="chart-anim-avg" height="260"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ CALCULATOR ═══════════ -->
+    <section class="page" id="page-calculator">
+      <div class="page-eyebrow">06 · Tools</div>
+      <h1 class="page-title">Emission <em>Calculator</em></h1>
+      <div class="ctrl-row">
+        <div class="ctrl-group"><div class="ctrl-label">Country</div><select id="calc-country"></select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="calc-year"></select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Distance (km/trip)</div><input type="number" id="calc-dist" value="12" min="1" max="500" style="width:80px"></div>
+        <div class="ctrl-group"><div class="ctrl-label">Trips / Day</div><input type="number" id="calc-trips" value="2" min="1" max="20" style="width:70px"></div>
+        <div class="ctrl-group"><div class="ctrl-label">Population</div><input type="number" id="calc-pop" value="1000000" min="1000" style="width:110px"></div>
+      </div>
+      <div class="calc-grid">
+        <div class="calc-panel">
+          <div class="calc-title">Transport Mode Distribution</div>
+          <div id="mode-inputs"></div>
+          <div style="margin-top:.85rem;font-size:11px;color:var(--text4)">
+            Total: <span id="share-total" style="color:var(--text);font-family:'JetBrains Mono';font-size:14px;font-weight:600">0</span>%
+            <span id="share-warn" style="color:var(--bad);display:none"> ⚠ should sum to ~100%</span>
+          </div>
+          <button class="calc-btn" onclick="runCalculation()">CALCULATE EMISSIONS</button>
+        </div>
+        <div class="calc-panel">
+          <div class="calc-title">Modal Distribution — live preview</div>
+          <div style="max-width:260px;margin:0 auto"><canvas id="chart-calc-donut" height="240"></canvas></div>
+          <div id="calc-legend" style="margin-top:.85rem;display:flex;flex-wrap:wrap;gap:.35rem .65rem"></div>
+        </div>
+      </div>
+      <div id="calc-results" style="display:none">
+        <div class="chart-box"><div class="calc-title">Results</div><div class="result-grid" id="result-kpis"></div></div>
+        <div class="chart-grid chart-grid-2">
+          <div class="chart-box"><div class="chart-title">Modal Distribution</div><canvas id="chart-result-donut" height="250"></canvas></div>
+          <div class="chart-box"><div class="chart-title">CO₂ per Trip by Mode (kg)</div><canvas id="chart-result-bar" height="250"></canvas></div>
+        </div>
+        <div class="chart-grid chart-grid-2">
+          <div class="chart-box"><div class="chart-title">Annual CO₂ by Mode (kg/year)</div><canvas id="chart-result-annual" height="250"></canvas></div>
+          <div class="chart-box"><div class="chart-title">Green vs Fossil Split</div><canvas id="chart-result-split" height="250"></canvas></div>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head">Detailed Results</div>
+          <table><thead><tr><th>Metric</th><th>Value</th><th>Notes</th></tr></thead>
+          <tbody id="result-table"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ IMPORT DATASET ═══════════ -->
+    <section class="page" id="page-import">
+      <div class="page-eyebrow">07 · Data</div>
+      <h1 class="page-title">Import <em>Dataset</em></h1>
+      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(this)">
+      <div class="import-zone" id="import-zone"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="handleImportDrop(event)">
+        <div class="import-icon">📂</div>
+        <div class="import-title">Drop your dataset here</div>
+        <div class="import-sub">Supports JSON format matching the TransportSense schema<br>(cities array with co2PerCapitaDay, modalSplit, greenScore fields)</div>
+        <button class="import-btn" onclick="document.getElementById('import-file-input').click()">Browse Files</button>
+        <div class="import-or">or drag and drop a .json file above</div>
+        <div class="import-status" id="import-status"></div>
+      </div>
+
+      <div class="mini-dashboard" id="mini-dashboard">
+        <div class="mini-section">
+          <div class="mini-section-title">📊 Imported — Global Stats</div>
+          <div class="cards cards-4" id="imp-kpis"></div>
+          <div class="chart-grid chart-grid-2">
+            <div class="chart-box"><div class="chart-title">CO₂ by Continent</div><canvas id="chart-imp-co2" height="200"></canvas></div>
+            <div class="chart-box"><div class="chart-title">Green Score by Continent</div><canvas id="chart-imp-green" height="200"></canvas></div>
+          </div>
+        </div>
+        <div class="mini-section">
+          <div class="mini-section-title">📈 Imported — CO₂ Trend</div>
+          <div class="chart-box"><canvas id="chart-imp-trend" height="140"></canvas></div>
+        </div>
+        <div class="mini-section">
+          <div class="mini-section-title">🚗 Imported — Modal Split (Top 20)</div>
+          <div class="chart-grid chart-grid-2">
+            <div class="chart-box"><div class="chart-title">Car Share</div><canvas id="chart-imp-car" height="220"></canvas></div>
+            <div class="chart-box"><div class="chart-title">Rail Share</div><canvas id="chart-imp-rail" height="220"></canvas></div>
+          </div>
+        </div>
+        <div class="mini-section">
+          <div class="mini-section-title">📋 Imported — Country Summary</div>
+          <div class="tbl-wrap">
+            <table><thead><tr><th>#</th><th>Country</th><th>Continent</th><th>CO₂/p/day</th><th>Green %</th><th>Top Mode</th></tr></thead>
+            <tbody id="imp-table"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ AI PREDICTION ═══════════ -->
+    <section class="page" id="page-aipredict">
+      <div class="page-eyebrow">08 · Intelligence</div>
+      <h1 class="page-title">AI <em>Prediction</em></h1>
+
+      <div class="chart-box" style="margin-bottom:1.6rem;max-width:780px">
+        <div style="font-size:13px;color:var(--text3);line-height:1.9">
+          <p style="margin-bottom:.7rem">This dashboard analyses <strong style="color:var(--text)">historical transport emission data</strong> from 196 countries across 16 years. While it excels at visualising patterns and trends, predicting <em>future</em> emissions requires AI reasoning.</p>
+          <p>Use the tools below to paste in data from this dashboard and ask AI models to forecast trends, simulate policy changes, or generate country-level decarbonisation strategies.</p>
+        </div>
+      </div>
+
+      <div style="font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:1rem">How to use</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:2rem">
+        <div class="card" style="text-align:center">
+          <div style="font-size:1.4rem;margin-bottom:.5rem">①</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:.3rem">Export Data</div>
+          <div style="font-size:11px;color:var(--text4)">Copy numbers from any chart or table in this dashboard</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:1.4rem;margin-bottom:.5rem">②</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:.3rem">Open an AI Tool</div>
+          <div style="font-size:11px;color:var(--text4)">Click any tool below — it opens in a new tab</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:1.4rem;margin-bottom:.5rem">③</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:.3rem">Ask a Question</div>
+          <div style="font-size:11px;color:var(--text4)">Paste your data and ask for predictions, trends, or recommendations</div>
+        </div>
+      </div>
+
+      <div style="font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:1rem">AI Tools</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-bottom:1.4rem">
+
+        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
+          <div style="font-size:2rem;flex-shrink:0">✦</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Google Gemini</div>
+            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Best for real-time web-grounded transport research and policy analysis across countries.</div>
+            <a href="https://gemini.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Gemini →</a>
+          </div>
+        </div>
+
+        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
+          <div style="font-size:2rem;flex-shrink:0">⬡</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">ChatGPT</div>
+            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Use GPT-4o to model modal shift scenarios, predict green score improvements, or draft transport policy briefs.</div>
+            <a href="https://chatgpt.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open ChatGPT →</a>
+          </div>
+        </div>
+
+        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
+          <div style="font-size:2rem;flex-shrink:0">◈</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Claude</div>
+            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Upload your exported JSON data directly to Claude for deep analysis, chart interpretation, and emission reduction planning.</div>
+            <a href="https://claude.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Claude →</a>
+          </div>
+        </div>
+
+        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
+          <div style="font-size:2rem;flex-shrink:0">⬙</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Microsoft Copilot</div>
+            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Integrated with Bing search — great for finding current emission statistics and cross-referencing with live data.</div>
+            <a href="https://copilot.microsoft.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Copilot →</a>
+          </div>
+        </div>
+
+        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
+          <div style="font-size:2rem;flex-shrink:0">◎</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Perplexity</div>
+            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">AI-powered search for latest research on urban transport emissions, green mobility, and city decarbonisation with citations.</div>
+            <a href="https://www.perplexity.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Perplexity →</a>
+          </div>
+        </div>
+
+        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
+          <div style="font-size:2rem;flex-shrink:0">◉</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">NotebookLM</div>
+            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Upload transport research papers alongside your dataset to generate summaries, Q&A sessions, and audio briefings.</div>
+            <a href="https://notebooklm.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open NotebookLM →</a>
+          </div>
+        </div>
+
+      </div>
+      <div class="ai-disclaimer">These are external tools — TransportSense does not send data automatically. Copy relevant data manually when querying AI tools.</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const EMISSION_FACTORS={Car:0.171,Motorcycle:0.103,Bus:0.089,Rail:0.041,ElectricCar:0.047,Walking:0.0,Cycling:0.0};
+
+let RAW=[],COUNTRIES=[],ALL_YEARS=[],MODES=[];
+let charts={},calcDonutChart=null;
+let animFrame=0,animTimer=null,animPlaying=false;
+const regionState={sens:'ALL',compare:'ALL',modal:'ALL'};
+
+const CONTINENT_COLORS={
+  'Asia':         {solid:'rgba(248,113,113,.8)', line:'#f87171'},
+  'Europe':       {solid:'rgba(96,165,250,.8)',  line:'#60a5fa'},
+  'North America':{solid:'rgba(250,204,21,.8)',  line:'#facc15'},
+  'South America':{solid:'rgba(74,222,128,.8)',  line:'#4ade80'},
+  'Africa':       {solid:'rgba(251,146,60,.8)',  line:'#fb923c'},
+  'Oceania':      {solid:'rgba(45,212,191,.8)',  line:'#2dd4bf'},
+};
+
+const MODE_COLORS={
+  Car:'#f87171',Motorcycle:'#fb923c',Bus:'#facc15',
+  Rail:'#a78bfa',ElectricCar:'#60a5fa',Walking:'#4ade80',Cycling:'#34d399'
+};
+const MODE_ORDER=['Car','Motorcycle','Bus','Rail','ElectricCar','Walking','Cycling'];
+
+const CITY_PALETTE=[
+  '#e5e5e5','#a3a3a3','#737373','#525252','#d4d4d4','#f5f5f5','#8a8a8a',
+  '#c4c4c4','#6b6b6b','#b0b0b0','#9a9a9a','#7a7a7a','#5a5a5a','#e0e0e0',
+  '#cccccc','#bbbbbb','#aaaaaa','#999999','#888888','#777777',
+  '#f0f0f0','#eeeeee','#dddddd','#cbcbcb','#bdbdbd','#ababab','#909090',
+  '#848484','#6e6e6e','#606060'
+];
+
+async function boot(){
+  try{
+    let jsonData=null;
+    for(const ep of['/analysis','./analysis.json','analysis.json','/api/analysis']){
+      try{const r=await fetch(ep);if(r.ok){const d=await r.json();if(d&&d.cities){jsonData=d;break;}}}catch(e){}
+    }
+    if(!jsonData)throw new Error('Could not load analysis.json');
+    RAW=parseData(jsonData);
+    COUNTRIES=[...new Set(RAW.map(r=>r.country))].sort();
+    ALL_YEARS=[...new Set(RAW.map(r=>r.year))].sort();
+    document.getElementById('status-text').textContent=`${COUNTRIES.length} countries · ${ALL_YEARS.length} yrs`;
+    populateSelectors();buildRegionPills();renderGlobal();renderAnimDelta();renderAnimAvg();
+  }catch(e){document.getElementById('status-text').textContent='Error: '+e.message;}
+  document.getElementById('loader').classList.add('out');
+  setTimeout(()=>{const l=document.getElementById('loader');if(l)l.remove();},600);
+}
+
+function parseData(jsonData){
+  return jsonData.cities.map(city=>{
+    const ms={};(city.modalSplit||[]).forEach(m=>{ms[m.mode]=m.share||0;});
+    return{country:city.country,continent:city.continent,year:city.year,
+      population:city.population||1000000,co2:city.co2PerCapitaDay||0,
+      greenScore:city.greenScore||0,fossilFuelShare:city.fossilFuelShare||0,
+      motorisationRate:city.motorisationRate||0,annualCO2:city.annualCO2Tonnes||0,modalSplit:ms};
+  });
+}
+
+function getRow(c,y){return RAW.find(r=>r.country===c&&r.year===+y)||null;}
+function latestYear(){return ALL_YEARS[ALL_YEARS.length-1];}
+function latestData(fn){const ly=latestYear();return RAW.filter(r=>r.year===ly&&(!fn||fn(r)));}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function topMode(ms){return Object.entries(ms).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-';}
+function countryColor(c,list){return CITY_PALETTE[(list||COUNTRIES).indexOf(c)%CITY_PALETTE.length]||CITY_PALETTE[0];}
+function allContinents(){return[...new Set(RAW.map(r=>r.continent))].sort();}
+
+function baseOpts(extra){
+  return{responsive:true,animation:{duration:400},
+    plugins:{legend:{display:false},...(extra||{})},
+    scales:{
+      x:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9},maxRotation:55},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
+      y:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+    }};
+}
+function hBarOpts(){const o=baseOpts();o.indexAxis='y';o.scales.x.ticks.maxRotation=0;return o;}
+
+function populateSelectors(){
+  const yrsRev=[...ALL_YEARS].reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
+  ['sens-country','calc-country'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML=COUNTRIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  });
+  ['sens-year','compare-year','modal-year','calc-year'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML=yrsRev;el.value=latestYear();
+  });
+}
+
+function buildRegionPills(){
+  const conts=['ALL',...allContinents()];
+  ['sens','compare','modal'].forEach(page=>{
+    const wrap=document.getElementById(`${page}-region-pills`);if(!wrap)return;
+    wrap.innerHTML=conts.map(c=>`<div class="region-pill${c==='ALL'?' active':''}"
+      data-page="${page}" data-cont="${c}" onclick="onRegionPill(this)">${c==='ALL'?'All Regions':c}</div>`).join('');
+  });
+}
+
+function onRegionPill(el){
+  const page=el.dataset.page,cont=el.dataset.cont;
+  regionState[page]=cont;
+  document.querySelectorAll(`#${page}-region-pills .region-pill`).forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  if(page==='sens'){
+    const eligible=cont==='ALL'?COUNTRIES:[...new Set(RAW.filter(r=>r.continent===cont).map(r=>r.country))].sort();
+    const sel=document.getElementById('sens-country');
+    sel.innerHTML=eligible.map(c=>`<option value="${c}">${c}</option>`).join('');
+    renderSensitivity();
+  }
+  if(page==='compare')renderCompare();
+  if(page==='modal')renderModal();
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  ['sens-country','sens-year'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderSensitivity));
+  ['compare-year','compare-metric','compare-topn'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCompare));
+  document.getElementById('modal-year')?.addEventListener('change',renderModal);
+  document.getElementById('modal-topn')?.addEventListener('change',renderModal);
+  document.getElementById('calc-country')?.addEventListener('change',onCalcChange);
+  document.getElementById('calc-year')?.addEventListener('change',onCalcChange);
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('page-'+item.dataset.page)?.classList.add('active');
+      if(RAW.length)dispatchPage(item.dataset.page);
+    });
+  });
+});
+
+function dispatchPage(p){
+  if(p==='global')renderGlobal();
+  if(p==='sensitivity')renderSensitivity();
+  if(p==='compare')renderCompare();
+  if(p==='modal')renderModal();
+  if(p==='timeseries')renderAnimFrame();
+  if(p==='calculator')onCalcChange();
+}
+
+// ── GLOBAL ───────────────────────────────────────────────────────────────────
+function renderGlobal(){
+  const data=latestData(),ly=latestYear();
+  const avgCO2=data.reduce((s,d)=>s+d.co2,0)/data.length;
+  const avgGreen=data.reduce((s,d)=>s+d.greenScore,0)/data.length;
+  document.getElementById('global-kpis').innerHTML=`
+    <div class="card"><div class="card-label">Total Countries</div><div class="card-value">${COUNTRIES.length}</div><div class="card-sub">${ALL_YEARS.length} years of data</div></div>
+    <div class="card"><div class="card-label">CO₂ Mean (${ly})</div><div class="card-value warn">${avgCO2.toFixed(3)}</div><div class="card-sub">kg/person/day</div></div>
+    <div class="card"><div class="card-label">CO₂ Range</div><div class="card-value">${Math.min(...data.map(d=>d.co2)).toFixed(2)}–${Math.max(...data.map(d=>d.co2)).toFixed(2)}</div><div class="card-sub">min–max kg/p/d</div></div>
+    <div class="card"><div class="card-label">Avg Green Score</div><div class="card-value good">${avgGreen.toFixed(1)}%</div><div class="card-sub">green mode share</div></div>`;
+
+  const conts=allContinents();
+  const cd=conts.map(c=>{const r=data.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length,count:r.length};});
+  const co2S=[...cd].sort((a,b)=>b.avgCO2-a.avgCO2);
+  destroyChart('global-co2');
+  charts['global-co2']=new Chart(document.getElementById('chart-global-co2'),{type:'bar',
+    data:{labels:co2S.map(d=>d.c),datasets:[{data:co2S.map(d=>+d.avgCO2.toFixed(3)),
+      backgroundColor:co2S.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),
+      borderWidth:0,borderRadius:6}]},
+    options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:ctx=>`${co2S[ctx.dataIndex].count} countries`}}}}});
+
+  const gS=[...cd].sort((a,b)=>b.avgGreen-a.avgGreen);
+  destroyChart('global-green');
+  charts['global-green']=new Chart(document.getElementById('chart-global-green'),{type:'bar',
+    data:{labels:gS.map(d=>d.c),datasets:[{data:gS.map(d=>+d.avgGreen.toFixed(1)),
+      backgroundColor:gS.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),
+      borderWidth:0,borderRadius:6}]},
+    options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:ctx=>`${gS[ctx.dataIndex].count} countries`}}}}});
+
+  // populate trend dropdown
+  const trendSel=document.getElementById('trend-continent');
+  if(trendSel&&trendSel.options.length===1){
+    conts.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;trendSel.appendChild(o);});
+  }
+  renderGlobalTrend();
+
+  document.getElementById('global-table').innerHTML=[...data].sort((a,b)=>b.co2-a.co2).map((d,i)=>`
+    <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
+    <td class="num ${d.co2>5?'bad':d.co2>3?'warn':'good'}">${d.co2.toFixed(3)}</td>
+    <td class="num good">${d.greenScore.toFixed(1)}%</td>
+    <td class="num ${d.fossilFuelShare>80?'bad':''}">${d.fossilFuelShare.toFixed(1)}%</td>
+    <td>${d.motorisationRate.toFixed(1)}%</td>
+    <td><span class="badge badge-white">${topMode(d.modalSplit)}</span></td></tr>`).join('');
+}
+
+// ── SENSITIVITY ───────────────────────────────────────────────────────────────
+function renderSensitivity(){
+  const country=document.getElementById('sens-country').value;
+  const year=+document.getElementById('sens-year').value;
+  const row=getRow(country,year);if(!row)return;
+  _renderSensPanel(row,country,year,'sens-kpis','sens-table','sens-co2','sens-shift');
+}
+
+function _renderSensPanel(row,country,year,kpisId,tableId,co2Id,shiftId){
+  const GREEN=['Rail','ElectricCar','Walking','Cycling'],FOSSIL=['Car','Motorcycle'];
+  const modes=MODE_ORDER.filter(m=>row.modalSplit[m]!==undefined);
+  const dist=10,trips=4;let totalCO2=0;
+  const modeStats=modes.map(m=>{const share=row.modalSplit[m]||0,ef=EMISSION_FACTORS[m]||0,co2c=(share/100)*ef*dist*trips;totalCO2+=co2c;return{m,share,ef,co2c};});
+  document.getElementById(kpisId).innerHTML=`
+    <div class="card"><div class="card-label">CO₂/p/day</div><div class="card-value warn">${row.co2.toFixed(3)}</div><div class="card-sub">kg</div></div>
+    <div class="card"><div class="card-label">Green Score</div><div class="card-value good">${row.greenScore.toFixed(1)}%</div><div class="card-sub">green share</div></div>
+    <div class="card"><div class="card-label">Fossil Share</div><div class="card-value ${row.fossilFuelShare>70?'bad':'warn'}">${row.fossilFuelShare.toFixed(1)}%</div><div class="card-sub">fossil %</div></div>
+    <div class="card"><div class="card-label">Top Mode</div><div class="card-value" style="font-size:1.2rem">${topMode(row.modalSplit)}</div><div class="card-sub">${year}</div></div>`;
+  document.getElementById(tableId).innerHTML=modeStats.map(({m,share,ef,co2c})=>`
+    <tr><td class="name">${m}</td><td class="num">${share.toFixed(1)}%</td><td class="num">${co2c.toFixed(4)} kg</td><td class="num">${ef}</td>
+    <td><span class="badge ${GREEN.includes(m)?'badge-green':FOSSIL.includes(m)?'badge-red':'badge-amber'}">${GREEN.includes(m)?'Green':FOSSIL.includes(m)?'Fossil':'Neutral'}</span></td>
+    <td class="num ${co2c/totalCO2>.3?'bad':co2c/totalCO2>.15?'warn':'good'}">${totalCO2>0?(co2c/totalCO2*100).toFixed(1):0}%</td></tr>`).join('');
+  destroyChart(co2Id);
+  charts[co2Id]=new Chart(document.getElementById('chart-'+co2Id),{type:'bar',
+    data:{labels:modes,datasets:[{data:modeStats.map(s=>+s.co2c.toFixed(4)),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}]},options:baseOpts()});
+  const row0=getRow(country,ALL_YEARS[0]);
+  destroyChart(shiftId);
+  charts[shiftId]=new Chart(document.getElementById('chart-'+shiftId),{type:'bar',
+    data:{labels:modes,datasets:[
+      {label:String(ALL_YEARS[0]),data:modes.map(m=>row0?(row0.modalSplit[m]||0):0),backgroundColor:'rgba(255,255,255,.15)',borderWidth:0,borderRadius:4},
+      {label:String(year),data:modes.map(m=>row.modalSplit[m]||0),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}
+    ]},options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}})}});
+}
+
+// ── COMPARE ───────────────────────────────────────────────────────────────────
+function renderCompare(){
+  const year=+document.getElementById('compare-year').value;
+  const metric=document.getElementById('compare-metric').value;
+  const topN=+document.getElementById('compare-topn').value||9999;
+  const region=regionState.compare;
+  let data=RAW.filter(r=>r.year===year);
+  if(region!=='ALL')data=data.filter(r=>r.continent===region);
+  const metricFns={co2:{fn:d=>d.co2,label:'CO₂ Per Capita (kg/p/day)'},green:{fn:d=>d.greenScore,label:'Green Score (%)'},
+    fossil:{fn:d=>d.fossilFuelShare,label:'Fossil Fuel (%)'},car:{fn:d=>d.modalSplit['Car']||0,label:'Car Share (%)'},
+    rail:{fn:d=>d.modalSplit['Rail']||0,label:'Rail Share (%)'},cycling:{fn:d=>d.modalSplit['Cycling']||0,label:'Cycling (%)'},
+    walking:{fn:d=>d.modalSplit['Walking']||0,label:'Walking (%)'},ev:{fn:d=>d.modalSplit['ElectricCar']||0,label:'EV Share (%)'}};
+  const{fn,label}=metricFns[metric]||metricFns.co2;
+  document.getElementById('compare-chart-title').textContent=`${label} (${year})`;
+  const sorted=[...data].sort((a,b)=>fn(b)-fn(a)).slice(0,topN||9999);
+  destroyChart('compare');
+  charts['compare']=new Chart(document.getElementById('chart-compare'),{type:'bar',
+    data:{labels:sorted.map(d=>d.country),datasets:[{data:sorted.map(d=>+fn(d).toFixed(3)),
+      backgroundColor:sorted.map(d=>(CONTINENT_COLORS[d.continent]||{solid:'rgba(200,200,200,.6)'}).solid),
+      borderWidth:0,borderRadius:4,maxBarThickness:40}]},
+    options:{...baseOpts({
+      legend:{display:false},
+      tooltip:{callbacks:{afterLabel:ctx=>`${sorted[ctx.dataIndex].continent}`}}
+    }),responsive:true,maintainAspectRatio:false,scales:{
+      x:{ticks:{color:'#616161',font:{family:'JetBrains Mono',size:8},maxRotation:60},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
+      y:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+    }}});
+  document.getElementById('compare-table').innerHTML=sorted.map((d,i)=>`
+    <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
+    <td class="num ${d.co2>5?'bad':d.co2>3?'warn':'good'}">${d.co2.toFixed(3)}</td>
+    <td class="num">${(d.annualCO2/1e6).toFixed(2)}M t</td>
+    <td class="num good">${d.greenScore.toFixed(1)}%</td>
+    <td class="num ${d.fossilFuelShare>80?'bad':''}">${d.fossilFuelShare.toFixed(1)}%</td>
+    <td>${d.motorisationRate.toFixed(1)}%</td></tr>`).join('');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function renderModal(){
+  const year=+document.getElementById('modal-year').value;
+  const topNVal=document.getElementById('modal-topn').value;
+  const topN=topNVal==='0'?Infinity:+topNVal||50;
+  const region=regionState.modal;
+  let data=RAW.filter(r=>r.year===year);
+  if(region!=='ALL')data=data.filter(r=>r.continent===region);
+  const mkH=(id,sorted,valFn,color)=>{
+    destroyChart(id);
+    const el=document.getElementById('chart-'+id);if(!el)return;
+    const wrap=document.getElementById('wrap-'+id);
+    const h=Math.max(320,sorted.length*22);
+    if(wrap){wrap.style.height=h+'px';}
+    charts[id]=new Chart(el,{type:'bar',
+      data:{labels:sorted.map(d=>d.country),datasets:[{
+        data:sorted.map(d=>+valFn(d).toFixed(1)),
+        backgroundColor:color,borderWidth:0,borderRadius:3,maxBarThickness:18}]},
+      options:{...hBarOpts(),responsive:true,maintainAspectRatio:false,
+        scales:{
+          x:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}},
+          y:{ticks:{color:'#a3a3a3',font:{family:'JetBrains Mono',size:10},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}}
+        }}});
+  };
+  const top=mode=>[...data].sort((a,b)=>(b.modalSplit[mode]||0)-(a.modalSplit[mode]||0)).slice(0,topN);
+  mkH('car-rank', top('Car'),       d=>d.modalSplit['Car']||0,       'rgba(248,113,113,.75)');
+  mkH('rail-rank',top('Rail'),      d=>d.modalSplit['Rail']||0,      'rgba(167,139,250,.75)');
+  mkH('bus-rank', top('Bus'),       d=>d.modalSplit['Bus']||0,       'rgba(250,204,21,.75)');
+  mkH('moto-rank',top('Motorcycle'),d=>d.modalSplit['Motorcycle']||0,'rgba(251,146,60,.75)');
+  mkH('walk-rank',top('Walking'),   d=>d.modalSplit['Walking']||0,   'rgba(74,222,128,.75)');
+  mkH('cycle-rank',top('Cycling'),  d=>d.modalSplit['Cycling']||0,   'rgba(52,211,153,.75)');
+  if(document.getElementById('chart-ev-adopt'))
+    mkH('ev-adopt',top('ElectricCar'),d=>d.modalSplit['ElectricCar']||0,'rgba(96,165,250,.75)');
+}
+
+// ── TIME ANIMATION ────────────────────────────────────────────────────────────
+function renderAnimFrame(fi){
+  if(fi!==undefined)animFrame=+fi;
+  const year=ALL_YEARS[animFrame],metric=document.getElementById('anim-metric').value,region=document.getElementById('anim-region').value;
+  document.getElementById('anim-year-label').textContent=year;
+  document.getElementById('anim-year-slider').value=animFrame;
+  const mf={co2:{fn:d=>d.co2,label:'CO₂'},green:{fn:d=>d.greenScore,label:'Green Score'},fossil:{fn:d=>d.fossilFuelShare,label:'Fossil %'},ev:{fn:d=>d.modalSplit['ElectricCar']||0,label:'EV Share'}};
+  const{fn,label}=mf[metric];
+  document.getElementById('anim-chart-title').textContent=`${label} — ${year}`;
+  let data=RAW.filter(r=>r.year===year);
+  if(region!=='ALL')data=data.filter(r=>r.continent===region);
+  const sorted=[...data].sort((a,b)=>fn(b)-fn(a)).slice(0,30);
+  const cf=d=>metric==='co2'?(d.co2>5?'rgba(248,113,113,.8)':d.co2>3?'rgba(250,204,21,.8)':'rgba(74,222,128,.8)'):'rgba(255,255,255,.55)';
+  if(charts['anim']){
+    charts['anim'].data.labels=sorted.map(d=>d.country);
+    charts['anim'].data.datasets[0].data=sorted.map(d=>+fn(d).toFixed(3));
+    charts['anim'].data.datasets[0].backgroundColor=sorted.map(cf);
+    charts['anim'].update('active');
+  }else{
+    charts['anim']=new Chart(document.getElementById('chart-anim'),{type:'bar',
+      data:{labels:sorted.map(d=>d.country),datasets:[{data:sorted.map(d=>+fn(d).toFixed(3)),backgroundColor:sorted.map(cf),borderWidth:0,borderRadius:4}]},
+      options:{...baseOpts(),animation:{duration:350}}});
+  }
+}
+
+function renderAnimDelta(){
+  const deltas=COUNTRIES.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
+  const combined=[...deltas.slice(0,15),...deltas.slice(-15).reverse()];
+  destroyChart('anim-delta');
+  charts['anim-delta']=new Chart(document.getElementById('chart-anim-delta'),{type:'bar',
+    data:{labels:combined.map(d=>d.country),datasets:[{data:combined.map(d=>+d.delta.toFixed(3)),
+      backgroundColor:combined.map(d=>d.delta>0?'rgba(248,113,113,.75)':'rgba(74,222,128,.75)'),borderWidth:0,borderRadius:3}]},options:baseOpts()});
+}
+
+function renderAnimAvg(){
+  const avg=ALL_YEARS.map(y=>{const r=RAW.filter(x=>x.year===y);return r.reduce((s,x)=>s+x.co2,0)/r.length;});
+  destroyChart('anim-avg');
+  charts['anim-avg']=new Chart(document.getElementById('chart-anim-avg'),{type:'line',
+    data:{labels:ALL_YEARS,datasets:[{label:'Global avg CO₂',data:avg.map(v=>+v.toFixed(3)),
+      borderColor:'rgba(255,255,255,.7)',backgroundColor:'rgba(255,255,255,.04)',tension:.4,pointRadius:3,borderWidth:2,fill:true}]},
+    options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}})}});
+}
+
+function onAnimSlider(v){stopAnimation();renderAnimFrame(+v);}
+function toggleAnimation(){if(animPlaying)stopAnimation();else startAnimation();}
+function startAnimation(){
+  animPlaying=true;document.getElementById('anim-play-btn').textContent='⏹ STOP';document.getElementById('anim-play-btn').classList.add('playing');
+  animTimer=setInterval(()=>{animFrame=(animFrame+1)%ALL_YEARS.length;renderAnimFrame(animFrame);if(animFrame===ALL_YEARS.length-1)stopAnimation();},+document.getElementById('anim-speed').value||700);
+}
+function stopAnimation(){animPlaying=false;clearInterval(animTimer);document.getElementById('anim-play-btn').textContent='▶ PLAY';document.getElementById('anim-play-btn').classList.remove('playing');}
+
+// ── CALCULATOR ────────────────────────────────────────────────────────────────
+function onCalcChange(){
+  const row=getRow(document.getElementById('calc-country').value,+document.getElementById('calc-year').value);if(!row)return;
+  document.getElementById('calc-pop').value=row.population;
+  const modes=MODE_ORDER.filter(m=>row.modalSplit[m]!==undefined);
+  document.getElementById('mode-inputs').innerHTML=modes.map(m=>{const share=row.modalSplit[m]||0,color=MODE_COLORS[m]||'#888';
+    return`<div class="mode-row"><div class="mode-label"><span class="mode-dot" style="background:${color}"></span>${m}</div>
+    <input type="range" min="0" max="100" step="0.5" value="${share.toFixed(1)}" data-mode="${m}" oninput="onSlider(this)" style="accent-color:${color}">
+    <div class="mode-share-val" id="sv-${m}">${share.toFixed(1)}%</div></div>`;}).join('');
+  updateShareTotal();updateDonut();
+}
+function onSlider(el){const sv=document.getElementById(`sv-${el.dataset.mode}`);if(sv)sv.textContent=(+el.value).toFixed(1)+'%';updateShareTotal();updateDonut();}
+function updateShareTotal(){let t=0;document.querySelectorAll('#mode-inputs input[type=range]').forEach(s=>t+=+s.value);document.getElementById('share-total').textContent=t.toFixed(1);document.getElementById('share-warn').style.display=Math.abs(t-100)>5?'inline':'none';}
+function getCalcModeData(){return[...document.querySelectorAll('#mode-inputs input[type=range]')].map(s=>({mode:s.dataset.mode,share:+s.value,ef:EMISSION_FACTORS[s.dataset.mode]||0}));}
+function updateDonut(){
+  const md=getCalcModeData().filter(m=>m.share>0);
+  if(calcDonutChart){calcDonutChart.destroy();calcDonutChart=null;}
+  calcDonutChart=new Chart(document.getElementById('chart-calc-donut'),{type:'doughnut',
+    data:{labels:md.map(m=>m.mode),datasets:[{data:md.map(m=>+m.share.toFixed(1)),backgroundColor:md.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]},
+    options:{responsive:true,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed.toFixed(1)}%`}}},animation:{duration:250}}});
+  document.getElementById('calc-legend').innerHTML=md.map(m=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:11px;color:var(--text3)"><span style="width:7px;height:7px;border-radius:50%;background:${MODE_COLORS[m.mode]||'#888'};flex-shrink:0"></span>${m.mode} ${m.share.toFixed(1)}%</div>`).join('');
+}
+function runCalculation(){
+  const dist=+document.getElementById('calc-dist').value||12,tripsD=+document.getElementById('calc-trips').value||2,pop=+document.getElementById('calc-pop').value||1000000;
+  const md=getCalcModeData(),GM=['Rail','ElectricCar','Walking','Cycling'],FM=['Car','Motorcycle'];
+  let tot=0,gCO2=0,fCO2=0;
+  const mr=md.map(m=>{const ct=m.ef*dist,d=(m.share/100)*ct*tripsD,a=d*365;tot+=d;if(GM.includes(m.mode))gCO2+=d;if(FM.includes(m.mode))fCO2+=d;return{...m,co2Trip:ct,daily:d,annual:a};});
+  const wk=tot*5,ann=tot*365,city=(ann*pop)/1e9;
+  document.getElementById('result-kpis').innerHTML=[
+    ['Daily CO₂',tot.toFixed(3),'kg / day'],['Weekly CO₂',wk.toFixed(2),'kg / week'],
+    ['Annual CO₂',ann.toFixed(1),'kg / year'],['City Aggregate',city.toFixed(2),'Mt CO₂ / year'],
+    ['Green CO₂',`<span style="color:var(--good)">${gCO2.toFixed(4)}</span>`,'kg/day'],
+    ['Fossil CO₂',`<span style="color:var(--bad)">${fCO2.toFixed(3)}</span>`,'kg/day']
+  ].map(([l,v,u])=>`<div class="result-card"><div class="result-label">${l}</div><div class="result-val">${v}</div><div class="result-unit">${u}</div></div>`).join('');
+  const nz=mr.filter(m=>m.share>0);
+  const mkR=(id,type,data,opts)=>{destroyChart(id);charts[id]=new Chart(document.getElementById('chart-result-'+id),{type,...data,...opts});};
+  mkR('donut','doughnut',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.share.toFixed(1)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'60%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
+  mkR('bar','bar',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.co2Trip.toFixed(4)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
+  mkR('annual','bar',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.annual.toFixed(2)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
+  const gT=nz.filter(m=>GM.includes(m.mode)).reduce((s,m)=>s+m.daily,0),fT=nz.filter(m=>FM.includes(m.mode)).reduce((s,m)=>s+m.daily,0);
+  mkR('split','doughnut',{data:{labels:['Green','Fossil','Other'],datasets:[{data:[+gT.toFixed(4),+fT.toFixed(4),+(tot-gT-fT).toFixed(4)],backgroundColor:['rgba(74,222,128,.8)','rgba(248,113,113,.8)','rgba(250,204,21,.7)'],borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'55%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
+  document.getElementById('result-table').innerHTML=[
+    ['Country',document.getElementById('calc-country').value,''],['Year',document.getElementById('calc-year').value,''],
+    ['Distance',`${dist} km`,'per trip'],['Trips/Day',tripsD,''],['Population',pop.toLocaleString(),''],
+    ['Daily CO₂',`${tot.toFixed(4)} kg`,'per person'],['Weekly CO₂',`${wk.toFixed(3)} kg`,''],
+    ['Annual CO₂',`${ann.toFixed(2)} kg`,'per person'],['City Aggregate',`${city.toFixed(3)} Mt`,''],
+    ...nz.map(m=>[m.mode,`${m.co2Trip.toFixed(4)} kg/trip`,`ef=${m.ef}`])
+  ].map(([k,v,n])=>`<tr><td>${k}</td><td class="num">${v}</td><td style="font-size:10px;color:var(--text4)">${n}</td></tr>`).join('');
+  document.getElementById('calc-results').style.display='block';
+  document.getElementById('calc-results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ── IMPORT DATASET ────────────────────────────────────────────────────────────
+function handleImportDrop(e){
+  e.preventDefault();document.getElementById('import-zone').classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];if(file)processImportFile(file);
+}
+function handleImportFile(input){const file=input.files[0];if(file)processImportFile(file);}
+
+function processImportFile(file){
+  const status=document.getElementById('import-status');
+  status.textContent='Reading file…';
+  if(!file.name.endsWith('.json')){status.textContent='⚠ Please select a .json file';return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const json=JSON.parse(e.target.result);
+      if(!json.cities||!Array.isArray(json.cities))throw new Error('Expected {cities:[...]} format');
+      const impRaw=parseData(json);
+      const impCountries=[...new Set(impRaw.map(r=>r.country))].sort();
+      const impYears=[...new Set(impRaw.map(r=>r.year))].sort();
+      status.textContent=`✓ Loaded ${impCountries.length} countries · ${impYears.length} years · ${impRaw.length} records`;
+      renderImportDashboard(impRaw,impCountries,impYears);
+    }catch(err){status.textContent='⚠ Error: '+err.message;}
+  };
+  reader.readAsText(file);
+}
+
+function renderImportDashboard(iRaw,iCountries,iYears){
+  const dash=document.getElementById('mini-dashboard');
+  dash.style.display='block';
+
+  const lyI=iYears[iYears.length-1];
+  const latI=iRaw.filter(r=>r.year===lyI);
+  const avgC=latI.reduce((s,d)=>s+d.co2,0)/latI.length;
+  const avgG=latI.reduce((s,d)=>s+d.greenScore,0)/latI.length;
+
+  document.getElementById('imp-kpis').innerHTML=`
+    <div class="card"><div class="card-label">Countries</div><div class="card-value">${iCountries.length}</div><div class="card-sub">${iYears.length} years</div></div>
+    <div class="card"><div class="card-label">Avg CO₂ (${lyI})</div><div class="card-value warn">${avgC.toFixed(3)}</div><div class="card-sub">kg/p/day</div></div>
+    <div class="card"><div class="card-label">Avg Green</div><div class="card-value good">${avgG.toFixed(1)}%</div><div class="card-sub">green share</div></div>
+    <div class="card"><div class="card-label">Records</div><div class="card-value">${iRaw.length}</div><div class="card-sub">total data points</div></div>`;
+
+  const iConts=[...new Set(iRaw.map(r=>r.continent))].sort();
+  const iContD=iConts.map(c=>{const r=latI.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length};});
+  const co2S=[...iContD].sort((a,b)=>b.avgCO2-a.avgCO2);
+  destroyChart('imp-co2');
+  charts['imp-co2']=new Chart(document.getElementById('chart-imp-co2'),{type:'bar',
+    data:{labels:co2S.map(d=>d.c),datasets:[{data:co2S.map(d=>+d.avgCO2.toFixed(3)),
+      backgroundColor:co2S.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),borderWidth:0,borderRadius:5}]},options:baseOpts()});
+
+  const gS=[...iContD].sort((a,b)=>b.avgGreen-a.avgGreen);
+  destroyChart('imp-green');
+  charts['imp-green']=new Chart(document.getElementById('chart-imp-green'),{type:'bar',
+    data:{labels:gS.map(d=>d.c),datasets:[{data:gS.map(d=>+d.avgGreen.toFixed(1)),
+      backgroundColor:gS.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),borderWidth:0,borderRadius:5}]},options:baseOpts()});
+
+  destroyChart('imp-trend');
+  charts['imp-trend']=new Chart(document.getElementById('chart-imp-trend'),{type:'line',
+    data:{labels:iYears,datasets:iConts.map(c=>({
+      label:c,data:iYears.map(y=>{const r=iRaw.filter(x=>x.continent===c&&x.year===y);return r.length?+(r.reduce((s,x)=>s+x.co2,0)/r.length).toFixed(3):null;}),
+      borderColor:(CONTINENT_COLORS[c]||{line:'#aaa'}).line,backgroundColor:'transparent',tension:.4,pointRadius:2,borderWidth:2}))},
+    options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10,padding:12}}})}});
+
+  const top20=[...latI].sort((a,b)=>b.modalSplit['Car']-a.modalSplit['Car']).slice(0,20);
+  destroyChart('imp-car');
+  charts['imp-car']=new Chart(document.getElementById('chart-imp-car'),{type:'bar',
+    data:{labels:top20.map(d=>d.country),datasets:[{data:top20.map(d=>+(d.modalSplit['Car']||0).toFixed(1)),backgroundColor:'rgba(248,113,113,.7)',borderWidth:0,borderRadius:3}]},options:hBarOpts()});
+
+  const top20r=[...latI].sort((a,b)=>b.modalSplit['Rail']-a.modalSplit['Rail']).slice(0,20);
+  destroyChart('imp-rail');
+  charts['imp-rail']=new Chart(document.getElementById('chart-imp-rail'),{type:'bar',
+    data:{labels:top20r.map(d=>d.country),datasets:[{data:top20r.map(d=>+(d.modalSplit['Rail']||0).toFixed(1)),backgroundColor:'rgba(167,139,250,.7)',borderWidth:0,borderRadius:3}]},options:hBarOpts()});
+
+  document.getElementById('imp-table').innerHTML=[...latI].sort((a,b)=>b.co2-a.co2).map((d,i)=>`
+    <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
+    <td class="num ${d.co2>5?'bad':d.co2>3?'warn':'good'}">${d.co2.toFixed(3)}</td>
+    <td class="num good">${d.greenScore.toFixed(1)}%</td>
+    <td><span class="badge badge-white">${topMode(d.modalSplit)}</span></td></tr>`).join('');
+}
+
+// ── GLOBAL TREND ─────────────────────────────────────────────────────────────
+function renderGlobalTrend(){
+  const sel=document.getElementById('trend-continent');
+  const chosen=sel?sel.value:'ALL';
+  const conts=allContinents();
+  const active=chosen==='ALL'?conts:[chosen];
+  destroyChart('trend');
+  charts['trend']=new Chart(document.getElementById('chart-trend'),{type:'line',
+    data:{labels:ALL_YEARS,datasets:active.map(c=>({
+      label:c,
+      data:ALL_YEARS.map(y=>{const r=RAW.filter(x=>x.continent===c&&x.year===y);return r.length?+(r.reduce((s,x)=>s+x.co2,0)/r.length).toFixed(3):null;}),
+      borderColor:(CONTINENT_COLORS[c]||{line:'#aaa'}).line,
+      backgroundColor:chosen==='ALL'?'transparent':(CONTINENT_COLORS[c]||{line:'#aaa'}).line.replace(')',',0.08)').replace('rgb','rgba'),
+      tension:.4,pointRadius:3,borderWidth:2,pointHoverRadius:5,fill:chosen!=='ALL'
+    }))},
+    options:{...baseOpts({legend:{display:true,position:'top',labels:{color:'#a3a3a3',font:{family:'Inter',size:11},boxWidth:12,padding:16,usePointStyle:true}}}),
+      layout:{padding:{top:8}}}});
+}
+
+boot();
+</script>
+</body>
+</html>

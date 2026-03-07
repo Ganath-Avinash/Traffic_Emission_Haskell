@@ -58,6 +58,7 @@ mainMenuText = unlines
   , "   0. Exit"
   , "  --------------------------------------------"
   ]
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Ranking sub-menu
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -97,7 +98,7 @@ cityMenu rs = do
   putStr "\n  City number: "
   cSel <- getLine
   case reads cSel :: [(Int,String)] of
-    [(n,_)] | n == 0                    -> mainMenu rs
+    [(n,_)] | n == 0                     -> mainMenu rs
     [(n,_)] | n >= 1, n <= length cities -> do
       let city  = cities !! (n-1)
           years = getYears (filter (\r -> trCity r == city) rs)
