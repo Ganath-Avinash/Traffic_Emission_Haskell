@@ -48,6 +48,8 @@ html.light-mode{
   --glass:rgba(255,255,255,.6);--glass2:rgba(255,255,255,.8);--glass3:rgba(255,255,255,1);
   --good:#16a34a;--warn:#ca8a04;--bad:#dc2626;--info:#2563eb;
 }
+html.light-mode .hamburger{background:rgba(255,255,255,.95);border-color:rgba(0,0,0,.15);box-shadow:0 2px 12px rgba(0,0,0,.1)}
+html.light-mode .hamburger span{background:#111}
 html{font-size:14px}
 body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh}
 body::before{content:'';position:fixed;inset:0;background:
@@ -287,12 +289,37 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
 .modal-chart-wrap canvas{display:block;width:100%!important}
 @media(max-width:960px){
   :root{--sidebar:0px}
-  .sidebar{transform:translateX(-100%)}
+  .sidebar{width:260px;transform:translateX(-100%);transition:transform .3s ease}
+  .sidebar.open{transform:translateX(0)}
   .main{margin-left:0}
   .cards-4{grid-template-columns:repeat(2,1fr)}
   .chart-grid-2{grid-template-columns:1fr}
   .calc-grid{grid-template-columns:1fr}
   .ai-grid{grid-template-columns:repeat(2,1fr)}
+  .hamburger{display:flex!important}
+  .sidebar-overlay{display:block}
+  .sidebar-overlay.active{opacity:1;pointer-events:auto}
+  .page{padding:2rem 1.2rem;padding-top:4rem}
+}
+.hamburger{
+  display:none;position:fixed;top:1rem;left:1rem;z-index:300;
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(30,30,30,.95);border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;cursor:pointer;
+  flex-direction:column;gap:5px;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+.hamburger span{
+  display:block;width:20px;height:2px;background:#fff;border-radius:2px;
+  transition:all .25s;
+}
+.hamburger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.active span:nth-child(2){opacity:0}
+.hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:190;opacity:0;transition:opacity .3s ease;pointer-events:none;
 }
 </style>
 </head>
@@ -305,7 +332,11 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
 </div>
 
 <div class="shell">
-  <nav class="sidebar">
+  <button class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileNav()"></div>
+  <nav class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-eyebrow">Urban Analytics</div>
       <div class="brand-name">Transport<span>Sense</span></div>
@@ -731,6 +762,22 @@ function toggleTheme(cb){
   const knob = document.querySelector('.theme-knob');
   if(knob) knob.style.transform = cb.checked ? 'translateX(14px)' : 'translateX(0)';
 }
+function toggleMobileNav(){
+  const sb = document.getElementById('sidebar');
+  const hb = document.getElementById('hamburger');
+  const ov = document.getElementById('sidebar-overlay');
+  const isOpen = sb.classList.toggle('open');
+  hb.classList.toggle('active', isOpen);
+  ov.classList.toggle('active', isOpen);
+}
+function closeMobileNav(){
+  const sb = document.getElementById('sidebar');
+  const hb = document.getElementById('hamburger');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.remove('open');
+  hb.classList.remove('active');
+  ov.classList.remove('active');
+}
 const EMISSION_FACTORS={Car:0.171,Motorcycle:0.103,Bus:0.089,Rail:0.041,ElectricCar:0.047,Walking:0.0,Cycling:0.0};
 
 let RAW=[],COUNTRIES=[],ALL_YEARS=[],MODES=[];
@@ -861,6 +908,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       item.classList.add('active');
       document.getElementById('page-'+item.dataset.page)?.classList.add('active');
       if(RAW.length)dispatchPage(item.dataset.page);
+      closeMobileNav();
     });
   });
 });
