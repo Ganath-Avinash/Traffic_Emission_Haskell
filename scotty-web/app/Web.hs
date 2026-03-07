@@ -15,22 +15,21 @@ main = scotty 3000 $ do
   get "/" $ do
     file "static/index.html"
 
-  -- Serve original analysis.json
+  -- Serve analysis.json from static folder
   get "/analysis" $ do
-    jsonData <- liftIO $ BL.readFile "../analysis.json"
+    jsonData <- liftIO $ BL.readFile "static/analysis.json"
     setHeader "Content-Type" "application/json; charset=utf-8"
     setHeader "Access-Control-Allow-Origin" "*"
     raw jsonData
 
-  -- Serve full CSV as JSON (50 cities, all years, all modes)
-  get "/data" $ do
-    csvContent <- liftIO $ readFile "../data/eu_transport.csv"
-    let json = csvToJson csvContent
+  -- Alternative endpoint
+  get "/api/analysis" $ do
+    jsonData <- liftIO $ BL.readFile "static/analysis.json"
     setHeader "Content-Type" "application/json; charset=utf-8"
     setHeader "Access-Control-Allow-Origin" "*"
-    text (TL.pack json)
+    raw jsonData
 
--- | Parse CSV and convert to JSON array of objects
+-- | Parse CSV and convert to JSON array of objects (for future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content

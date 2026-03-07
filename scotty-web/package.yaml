@@ -7,31 +7,26 @@ maintainer: "kavinjs21@gmail.com"
 copyright: "2026 Kavin J S"
 
 extra-source-files:
-- README.md
-- CHANGELOG.md
+  - README.md
+  - CHANGELOG.md
 
 description: Please see the README on GitHub
 
 dependencies:
-- base >= 4.7 && < 5
-- scotty
-- text
-- bytestring
-- process
+  - base >= 4.7 && < 5
+  - scotty
+  - text
+  - bytestring
+  - process
 
 ghc-options:
-- -Wall
-- -Wcompat
-- -Widentities
-- -Wincomplete-record-updates
-- -Wincomplete-uni-patterns
-- -Wmissing-export-lists
-- -Wmissing-home-modules
-- -Wpartial-fields
-- -Wredundant-constraints
-
-library:
-  source-dirs: src
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wmissing-home-modules
+  - -Wpartial-fields
 
 executables:
   scotty-web-exe:
@@ -42,24 +37,7 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - scotty-web
       - scotty
       - text
       - bytestring
       - process
-
-tests:
-  scotty-web-test:
-    main: Spec.hs
-    source-dirs: test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - scotty-web
-      - scotty
-      - text
-      - bytestring
-      - process
-      - base >= 4.7 && < 5
