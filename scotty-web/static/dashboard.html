@@ -137,8 +137,20 @@ select,input[type=number]{
 select:focus,input:focus{border-color:var(--border3);background:var(--glass3);box-shadow:0 0 0 2px rgba(255,255,255,.06)}
 select{min-width:160px}
 select option{background:#141414;color:#ffffff;font-size:13px}
-input[type=range]{-webkit-appearance:none;height:2px;background:rgba(255,255,255,.12);border:none;border-radius:2px;outline:none;cursor:pointer;flex:1;min-width:100px}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--text);cursor:pointer}
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;        /* ← add this line */
+  height: 2px;
+  background: rgba(255,255,255,.12);
+  border: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;        /* ← add this line */
+  width: 12px;
+  height: 12px;
+}
 
 /* ── BADGE ───────────────────────────────────────────────────── */
 .badge{display:inline-block;padding:.15rem .45rem;border-radius:4px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-family:'JetBrains Mono'}
