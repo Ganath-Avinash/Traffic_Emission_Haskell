@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TransportSense — Urban Emission Intelligence</title>
+<link rel="icon" type="image/png" href="img/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script type="module">
@@ -38,6 +39,9 @@ onAuthStateChanged(fbAuth, user => {
   --accent:#ffffff;--accent-dim:rgba(255,255,255,.7);
   --good:#4ade80;--warn:#facc15;--bad:#f87171;--info:#60a5fa;
   --sidebar:260px;
+  --chart-grid:rgba(255,255,255,.04);--chart-border:rgba(255,255,255,.06);
+  --chart-line:rgba(255,255,255,.7);--chart-line-fill:rgba(255,255,255,.04);
+  --chart-legend:#a3a3a3;
 }
 html.light-mode{
   --bg:#f8f9fa;
@@ -47,6 +51,9 @@ html.light-mode{
   --text:#111111;--text2:#333333;--text3:#666666;--text4:#999999;
   --glass:rgba(255,255,255,.6);--glass2:rgba(255,255,255,.8);--glass3:rgba(255,255,255,1);
   --good:#16a34a;--warn:#ca8a04;--bad:#dc2626;--info:#2563eb;
+  --chart-grid:rgba(0,0,0,.06);--chart-border:rgba(0,0,0,.12);
+  --chart-line:rgba(30,30,30,.7);--chart-line-fill:rgba(30,30,30,.06);
+  --chart-legend:#555555;
 }
 html.light-mode .hamburger{background:rgba(255,255,255,.95);border-color:rgba(0,0,0,.15);box-shadow:0 2px 12px rgba(0,0,0,.1)}
 html.light-mode .hamburger span{background:#111}
@@ -761,6 +768,20 @@ function toggleTheme(cb){
   document.documentElement.classList.toggle('light-mode', cb.checked);
   const knob = document.querySelector('.theme-knob');
   if(knob) knob.style.transform = cb.checked ? 'translateX(14px)' : 'translateX(0)';
+  // Re-render all currently visible charts so colours update
+  setTimeout(()=>{
+    const activePage=document.querySelector('.page.active');
+    if(activePage){
+      const pid=activePage.id.replace('page-','');
+      // Destroy all charts and re-render the active page
+      Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k];});
+      if(calcDonutChart){calcDonutChart.destroy();calcDonutChart=null;}
+      dispatchPage(pid);
+      // Also re-render the time animation side charts if on that page
+      if(pid==='timeseries'){renderAnimDelta();renderAnimAvg();}
+      if(pid==='global'){renderGlobalTrend();}
+    }
+  },50);
 }
 function toggleMobileNav(){
   const sb = document.getElementById('sidebar');
@@ -843,16 +864,28 @@ function topMode(ms){return Object.entries(ms).sort((a,b)=>b[1]-a[1])[0]?.[0]||'
 function countryColor(c,list){return CITY_PALETTE[(list||COUNTRIES).indexOf(c)%CITY_PALETTE.length]||CITY_PALETTE[0];}
 function allContinents(){return ['Africa','Antarctica','Asia','Europe','North America','Oceania','South America'];}
 
+function getChartColors(){
+  const s=getComputedStyle(document.documentElement);
+  return{
+    tick:s.getPropertyValue('--text3').trim()||'#a3a3a3',
+    grid:s.getPropertyValue('--chart-grid').trim()||'rgba(255,255,255,.04)',
+    border:s.getPropertyValue('--chart-border').trim()||'rgba(255,255,255,.06)',
+    line:s.getPropertyValue('--chart-line').trim()||'rgba(255,255,255,.7)',
+    lineFill:s.getPropertyValue('--chart-line-fill').trim()||'rgba(255,255,255,.04)',
+    legend:s.getPropertyValue('--chart-legend').trim()||'#a3a3a3'
+  };
+}
 function baseOpts(extra){
-  const tColor=getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3';
+  const cc=getChartColors();
   return{responsive:true,animation:{duration:400},
     plugins:{legend:{display:false},...(extra||{})},
     scales:{
-      x:{ticks:{color:tColor,font:{family:'JetBrains Mono',size:9},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:tColor,font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+      x:{ticks:{color:cc.tick,font:{family:'JetBrains Mono',size:9},maxRotation:0},grid:{color:cc.grid},border:{color:cc.border}},
+      y:{ticks:{color:cc.tick,font:{family:'JetBrains Mono',size:9}},grid:{color:cc.grid},border:{color:cc.border}}
     }};
 }
 function hBarOpts(){const o=baseOpts();o.indexAxis='y';o.scales.x.ticks.maxRotation=0;return o;}
+function legendOpts(extra){const cc=getChartColors();return{legend:{display:true,labels:{color:cc.legend,font:{family:'Inter',size:10},boxWidth:10,...(extra||{})}}};}
 
 function populateSelectors(){
   const yrsRev=[...ALL_YEARS].reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
@@ -990,15 +1023,20 @@ function _renderSensPanel(row,country,year,kpisId,tableId,co2Id,shiftId){
     <td><span class="badge ${GREEN.includes(m)?'badge-green':FOSSIL.includes(m)?'badge-red':'badge-amber'}">${GREEN.includes(m)?'Green':FOSSIL.includes(m)?'Fossil':'Neutral'}</span></td>
     <td class="num ${co2c/totalCO2>.3?'bad':co2c/totalCO2>.15?'warn':'good'}">${totalCO2>0?(co2c/totalCO2*100).toFixed(1):0}%</td></tr>`).join('');
   destroyChart(co2Id);
+  const co2Opts=baseOpts();
+  co2Opts.scales.x.ticks.autoSkip=false;co2Opts.scales.x.ticks.maxRotation=0;co2Opts.scales.x.ticks.minRotation=0;
   charts[co2Id]=new Chart(document.getElementById('chart-'+co2Id),{type:'bar',
-    data:{labels:modes.map(m=>mLab(m)),datasets:[{data:modeStats.map(s=>+s.co2c.toFixed(4)),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}]},options:{...baseOpts(),scales:{x:{ticks:{autoSkip:false,maxRotation:0,minRotation:0}}}}});
+    data:{labels:modes.map(m=>mLab(m)),datasets:[{data:modeStats.map(s=>+s.co2c.toFixed(4)),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}]},options:co2Opts});
   const row0=getRow(country,ALL_YEARS[0]);
   destroyChart(shiftId);
+  const shiftCC=getChartColors();
+  const shiftOpts=baseOpts(legendOpts());
+  shiftOpts.scales.x.ticks.autoSkip=false;shiftOpts.scales.x.ticks.maxRotation=0;shiftOpts.scales.x.ticks.minRotation=0;
   charts[shiftId]=new Chart(document.getElementById('chart-'+shiftId),{type:'bar',
     data:{labels:modes.map(m=>mLab(m)),datasets:[
-      {label:String(ALL_YEARS[0]),data:modes.map(m=>row0?(row0.modalSplit[m]||0):0),backgroundColor:'rgba(255,255,255,.15)',borderWidth:0,borderRadius:4},
+      {label:String(ALL_YEARS[0]),data:modes.map(m=>row0?(row0.modalSplit[m]||0):0),backgroundColor:document.documentElement.classList.contains('light-mode')?'rgba(0,0,0,.12)':'rgba(255,255,255,.15)',borderWidth:0,borderRadius:4},
       {label:String(year),data:modes.map(m=>row.modalSplit[m]||0),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}
-    ]},options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}),scales:{x:{ticks:{autoSkip:false,maxRotation:0,minRotation:0}}}}});
+    ]},options:shiftOpts});
 }
 
 // ── COMPARE ───────────────────────────────────────────────────────────────────
@@ -1017,6 +1055,7 @@ function renderCompare(){
   document.getElementById('compare-chart-title').textContent=`${label} (${year})`;
   const sorted=[...data].sort((a,b)=>fn(b)-fn(a)).slice(0,topN||9999);
   destroyChart('compare');
+  const cmpCC=getChartColors();
   charts['compare']=new Chart(document.getElementById('chart-compare'),{type:'bar',
     data:{labels:sorted.map(d=>d.country),datasets:[{data:sorted.map(d=>+fn(d).toFixed(3)),
       backgroundColor:sorted.map(d=>(CONTINENT_COLORS[d.continent]||{solid:'rgba(200,200,200,.6)'}).solid),
@@ -1025,8 +1064,8 @@ function renderCompare(){
       legend:{display:false},
       tooltip:{callbacks:{afterLabel:ctx=>`${sorted[ctx.dataIndex].continent}`}}
     }),responsive:true,maintainAspectRatio:false,scales:{
-      x:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:10},autoSkip:false},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+      x:{ticks:{color:cmpCC.tick,font:{family:'JetBrains Mono',size:10},autoSkip:false},grid:{color:cmpCC.grid},border:{color:cmpCC.border}},
+      y:{ticks:{color:cmpCC.tick,font:{family:'JetBrains Mono',size:9}},grid:{color:cmpCC.grid},border:{color:cmpCC.border}}
     }}});
   document.getElementById('compare-table').innerHTML=sorted.map((d,i)=>`
     <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
@@ -1051,14 +1090,15 @@ function renderModal(){
     const wrap=document.getElementById('wrap-'+id);
     const h=Math.max(320,sorted.length*22);
     if(wrap){wrap.style.height=h+'px';}
+    const mCC=getChartColors();
     charts[id]=new Chart(el,{type:'bar',
       data:{labels:sorted.map(d=>d.country),datasets:[{
         data:sorted.map(d=>+valFn(d).toFixed(1)),
         backgroundColor:color,borderWidth:0,borderRadius:3,maxBarThickness:18}]},
       options:{...hBarOpts(),responsive:true,maintainAspectRatio:false,
         scales:{
-          x:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}},
-          y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue('--text3').trim()||'#a3a3a3',font:{family:'JetBrains Mono',size:10},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}}
+          x:{ticks:{color:mCC.tick,font:{family:'JetBrains Mono',size:9}},grid:{color:mCC.grid},border:{color:mCC.border}},
+          y:{ticks:{color:mCC.tick,font:{family:'JetBrains Mono',size:10},maxRotation:0},grid:{color:mCC.grid},border:{color:mCC.border}}
         }}});
   };
   const top=mode=>[...data].sort((a,b)=>(b.modalSplit[mode]||0)-(a.modalSplit[mode]||0)).slice(0,topN);
@@ -1109,18 +1149,26 @@ function renderAnimDelta(){
   const deltas=COUNTRIES.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2,continent:r0.continent};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
   const combined=[...deltas.slice(0,15),...deltas.slice(-15).reverse()];
   destroyChart('anim-delta');
+  const deltaOpts=baseOpts();
+  deltaOpts.animation={duration:1200,easing:'easeOutQuart',delay:function(ctx){return ctx.type==='data'?ctx.dataIndex*40:0;}};
   charts['anim-delta']=new Chart(document.getElementById('chart-anim-delta'),{type:'bar',
     data:{labels:combined.map(d=>d.country),datasets:[{data:combined.map(d=>+d.delta.toFixed(3)),
-      backgroundColor:combined.map(d=>(CONTINENT_COLORS[d.continent]||{solid:'rgba(74,222,128,.75)'}).solid),borderWidth:0,borderRadius:3}]},options:baseOpts()});
+      backgroundColor:combined.map(d=>(CONTINENT_COLORS[d.continent]||{solid:'rgba(74,222,128,.75)'}).solid),borderWidth:0,borderRadius:3}]},options:deltaOpts});
 }
 
 function renderAnimAvg(){
+  const cc=getChartColors();
   const avg=ALL_YEARS.map(y=>{const r=RAW.filter(x=>x.year===y);return r.reduce((s,x)=>s+x.co2,0)/r.length;});
   destroyChart('anim-avg');
+  const avgOpts=baseOpts(legendOpts());
+  avgOpts.animation={duration:2000,easing:'easeInOutQuart',
+    x:{type:'number',easing:'linear',duration:1500,from:NaN,delay:function(ctx){if(ctx.type!=='data')return 0;return ctx.dataIndex*80;}},
+    y:{type:'number',easing:'easeOutQuart',duration:800,from:function(ctx){return ctx.chart.scales.y?ctx.chart.scales.y.getPixelForValue(100):0;},delay:function(ctx){if(ctx.type!=='data')return 0;return ctx.dataIndex*80;}}
+  };
   charts['anim-avg']=new Chart(document.getElementById('chart-anim-avg'),{type:'line',
     data:{labels:ALL_YEARS,datasets:[{label:'Global avg CO₂',data:avg.map(v=>+v.toFixed(3)),
-      borderColor:'rgba(255,255,255,.7)',backgroundColor:'rgba(255,255,255,.04)',tension:.4,pointRadius:3,borderWidth:2,fill:true}]},
-    options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}})}});
+      borderColor:cc.line,backgroundColor:cc.lineFill,tension:.4,pointRadius:3,pointBackgroundColor:cc.line,borderWidth:2,fill:true}]},
+    options:avgOpts});
 }
 
 function onAnimSlider(v){stopAnimation();renderAnimFrame(+v);}
@@ -1302,12 +1350,13 @@ function renderImportDashboard(iRaw,iCountries,iYears){
     data:{labels:gS.map(d=>d.c),datasets:[{data:gS.map(d=>+d.avgGreen.toFixed(1)),
       backgroundColor:gS.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),borderWidth:0,borderRadius:5}]},options:baseOpts()});
 
+  const impCC=getChartColors();
   destroyChart('imp-trend');
   charts['imp-trend']=new Chart(document.getElementById('chart-imp-trend'),{type:'line',
     data:{labels:iYears,datasets:iConts.map(c=>({
       label:c,data:iYears.map(y=>{const r=iRaw.filter(x=>x.continent===c&&x.year===y);return r.length?+(r.reduce((s,x)=>s+x.co2,0)/r.length).toFixed(3):null;}),
       borderColor:(CONTINENT_COLORS[c]||{line:'#aaa'}).line,backgroundColor:'transparent',tension:.4,pointRadius:2,borderWidth:2}))},
-    options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10,padding:12}}})}});
+    options:{...baseOpts(legendOpts({padding:12}))}});
 
   const top20=[...latI].sort((a,b)=>b.modalSplit['Car']-a.modalSplit['Car']).slice(0,20);
   destroyChart('imp-car');
@@ -1333,6 +1382,7 @@ function renderGlobalTrend(){
   const conts=allContinents();
   const active=chosen==='ALL'?conts:[chosen];
   destroyChart('trend');
+  const tCC=getChartColors();
   charts['trend']=new Chart(document.getElementById('chart-trend'),{type:'line',
     data:{labels:ALL_YEARS,datasets:active.map(c=>({
       label:c,
@@ -1341,7 +1391,7 @@ function renderGlobalTrend(){
       backgroundColor:chosen==='ALL'?'transparent':(CONTINENT_COLORS[c]||{line:'#aaa'}).line.replace(')',',0.08)').replace('rgb','rgba'),
       tension:.4,pointRadius:3,borderWidth:2,pointHoverRadius:5,fill:chosen!=='ALL'
     }))},
-    options:{...baseOpts({legend:{display:true,position:'top',labels:{color:'#a3a3a3',font:{family:'Inter',size:11},boxWidth:12,padding:16,usePointStyle:true}}}),
+    options:{...baseOpts({legend:{display:true,position:'top',labels:{color:tCC.legend,font:{family:'Inter',size:11},boxWidth:12,padding:16,usePointStyle:true}}}),
       layout:{padding:{top:8}}}});
 }
 
