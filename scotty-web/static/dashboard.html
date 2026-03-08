@@ -358,7 +358,7 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
     <div class="nav">
       <div class="nav-section">Explore</div>
       <div class="nav-item active" data-page="global"><span class="nav-dot"></span>Global Stats</div>
-      <div class="nav-section" style="margin-top:.75rem">Emission analysis of EU</div>
+      <div class="nav-section" style="margin-top:.75rem">Emission Analysis</div>
       <div class="nav-item" data-page="sensitivity"><span class="nav-dot"></span>Sensitivity</div>
       <div class="nav-item" data-page="compare"><span class="nav-dot"></span>Country Compare</div>
       <div class="nav-item" data-page="modal"><span class="nav-dot"></span>Modal Split</div>
@@ -561,15 +561,16 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
         <div class="chart-sub">Animated bar chart — use play button or drag slider</div>
         <canvas id="chart-anim" height="180"></canvas>
       </div>
+      <div style="margin-top:1.6rem;margin-bottom:.8rem;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';padding-bottom:.5rem;border-bottom:1px solid var(--border)">EU (Europe) Analysis</div>
       <div class="chart-grid chart-grid-2">
         <div class="chart-box">
-          <div class="chart-title">CO₂ Change 2010→2025</div>
-          <div class="chart-sub">Biggest absolute CO₂ change (kg/p/day)</div>
+          <div class="chart-title">EU CO₂ Change 2010→2025</div>
+          <div class="chart-sub">Biggest absolute CO₂ change in Europe (kg/p/day)</div>
           <canvas id="chart-anim-delta" height="260"></canvas>
         </div>
         <div class="chart-box">
-          <div class="chart-title">Global Average Trend</div>
-          <div class="chart-sub">Average across all countries per year</div>
+          <div class="chart-title">EU Average Trend</div>
+          <div class="chart-sub">Average across European countries per year</div>
           <canvas id="chart-anim-avg" height="260"></canvas>
         </div>
       </div>
@@ -819,6 +820,7 @@ const CONTINENT_COLORS={
   'South America':{solid:'rgba(74,222,128,.8)',  line:'#4ade80'},
   'Africa':       {solid:'rgba(251,146,60,.8)',  line:'#fb923c'},
   'Oceania':      {solid:'rgba(45,212,191,.8)',  line:'#2dd4bf'},
+  'Antarctica':   {solid:'rgba(203,213,225,.8)', line:'#cbd5e1'},
 };
 
 const MODE_COLORS={
@@ -835,14 +837,50 @@ const CITY_PALETTE=[
   '#848484','#6e6e6e','#606060'
 ];
 
+// Map of all continent data files to load
+const CONTINENT_FILES=[
+  'analysis.json',
+  'emissions_Africa.json',
+  'emissions_Antarctica.json',
+  'emissions_Asia.json',
+  'emissions_Australia.json',
+  'emissions_North_America.json',
+  'emissions_South_America.json'
+];
+// Normalize continent names (e.g. 'Australia' -> 'Oceania')
+const CONTINENT_NAME_MAP={'Australia':'Oceania'};
+
 async function boot(){
   try{
-    let jsonData=null;
-    for(const ep of['/analysis','./analysis.json','analysis.json','/api/analysis']){
-      try{const r=await fetch(ep);if(r.ok){const d=await r.json();if(d&&d.cities){jsonData=d;break;}}}catch(e){}
-    }
-    if(!jsonData)throw new Error('Could not load analysis.json');
-    RAW=parseData(jsonData);
+    // Load ALL continent files in parallel
+    const allCities=[];
+    const results=await Promise.allSettled(
+      CONTINENT_FILES.map(async file=>{
+        for(const prefix of['./','','/']){  
+          try{
+            const r=await fetch(prefix+file);
+            if(r.ok){const d=await r.json();if(d&&d.cities)return d;}
+          }catch(e){}
+        }
+        return null;
+      })
+    );
+    let loaded=0;
+    results.forEach(res=>{
+      if(res.status==='fulfilled'&&res.value&&res.value.cities){
+        res.value.cities.forEach(city=>{
+          // Normalize continent names
+          if(city.continent&&CONTINENT_NAME_MAP[city.continent]){
+            city.continent=CONTINENT_NAME_MAP[city.continent];
+          }
+          allCities.push(city);
+        });
+        loaded++;
+      }
+    });
+    if(allCities.length===0)throw new Error('Could not load any data files');
+    console.log(`Loaded ${loaded} continent files, ${allCities.length} total records`);
+    RAW=parseData({cities:allCities});
     COUNTRIES=[...new Set(RAW.map(r=>r.country))].sort();
     ALL_YEARS=[...new Set(RAW.map(r=>r.year))].sort();
     // user greeting is set by Firebase onAuthStateChanged above
@@ -868,7 +906,7 @@ function latestData(fn){const ly=latestYear();return RAW.filter(r=>r.year===ly&&
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function topMode(ms){return Object.entries(ms).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-';}
 function countryColor(c,list){return CITY_PALETTE[(list||COUNTRIES).indexOf(c)%CITY_PALETTE.length]||CITY_PALETTE[0];}
-function allContinents(){return ['Africa','Antarctica','Asia','Europe','North America','Oceania','South America'];}
+function allContinents(){return [...new Set(RAW.map(r=>r.continent))].sort();}
 
 function getChartColors(){
   const s=getComputedStyle(document.documentElement);
@@ -1152,7 +1190,8 @@ function renderAnimFrame(fi){
 }
 
 function renderAnimDelta(){
-  const deltas=COUNTRIES.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2,continent:r0.continent};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
+  const euCountries=COUNTRIES.filter(c=>{const rows=RAW.filter(r=>r.country===c);return rows.length>0&&rows[0].continent==='Europe';});
+  const deltas=euCountries.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2,continent:r0.continent};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
   const combined=[...deltas.slice(0,15),...deltas.slice(-15).reverse()];
   destroyChart('anim-delta');
   const deltaOpts=baseOpts();
@@ -1164,7 +1203,7 @@ function renderAnimDelta(){
 
 function renderAnimAvg(){
   const cc=getChartColors();
-  const avg=ALL_YEARS.map(y=>{const r=RAW.filter(x=>x.year===y);return r.reduce((s,x)=>s+x.co2,0)/r.length;});
+  const avg=ALL_YEARS.map(y=>{const r=RAW.filter(x=>x.year===y&&x.continent==='Europe');return r.length?r.reduce((s,x)=>s+x.co2,0)/r.length:null;});
   destroyChart('anim-avg');
   const avgOpts=baseOpts(legendOpts());
   avgOpts.animation={duration:2000,easing:'easeInOutQuart',
@@ -1172,7 +1211,7 @@ function renderAnimAvg(){
     y:{type:'number',easing:'easeOutQuart',duration:800,from:function(ctx){return ctx.chart.scales.y?ctx.chart.scales.y.getPixelForValue(100):0;},delay:function(ctx){if(ctx.type!=='data')return 0;return ctx.dataIndex*80;}}
   };
   charts['anim-avg']=new Chart(document.getElementById('chart-anim-avg'),{type:'line',
-    data:{labels:ALL_YEARS,datasets:[{label:'Global avg CO₂',data:avg.map(v=>+v.toFixed(3)),
+    data:{labels:ALL_YEARS,datasets:[{label:'EU avg CO₂',data:avg.map(v=>v!==null?+v.toFixed(3):null),
       borderColor:cc.line,backgroundColor:cc.lineFill,tension:.4,pointRadius:3,pointBackgroundColor:cc.line,borderWidth:2,fill:true}]},
     options:avgOpts});
 }
