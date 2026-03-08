@@ -285,6 +285,46 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
 .mini-section{margin-bottom:2rem}
 .mini-section-title{font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:.8rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
 
+.convert-box{
+  border:2px dashed var(--border2);
+  border-radius:16px;
+  padding:2rem;
+  background:var(--glass);
+  text-align:center;
+  margin-top:1.5rem;
+}
+
+.convert-title{
+  font-size:14px;
+  font-weight:600;
+  color:var(--text);
+  margin-bottom:1rem;
+}
+
+.convert-input{
+  margin-bottom:1rem;
+  font-size:12px;
+}
+
+.convert-btn,.download-btn{
+  display:inline-block;
+  padding:.55rem 1.4rem;
+  background:var(--text);
+  color:var(--bg);
+  font-weight:600;
+  font-size:13px;
+  border-radius:8px;
+  cursor:pointer;
+  border:none;
+  text-decoration:none;
+  margin-top:.5rem;
+}
+
+.convert-btn:hover,.download-btn:hover{
+  background:var(--text2);
+  transform:translateY(-1px);
+}
+
 /* ── AI PREDICTION PAGE ──────────────────────────────────────── */
 .ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
 .ai-card{
@@ -658,6 +698,35 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
         <div class="import-status" id="import-status"></div>
       </div>
 
+      <div class="convert-box">
+
+  <div class="import-icon">📄</div>
+  <div class="import-title">CSV → JSON Converter</div>
+  <div class="import-sub">Upload a CSV file and download it as JSON</div>
+
+  <input type="file" id="csvFile" accept=".csv" hidden onchange="fileSelected()">
+
+  <button class="import-btn" onclick="document.getElementById('csvFile').click()">
+    Browse files
+  </button>
+
+  <div class="import-or">then convert</div>
+
+  <button id="convertBtn" class="import-btn" onclick="convertCSV()" style="display:none">
+    Convert to JSON
+  </button>
+
+  <br><br>
+
+  <a id="downloadJson" class="import-btn" style="display:none">
+    Download JSON
+  </a>
+
+  <div id="convertStatus" class="import-status"></div>
+
+</div>
+
+
       <div class="mini-dashboard" id="mini-dashboard">
         <div class="mini-section">
           <div class="mini-section-title">📊 Imported — Global Stats</div>
@@ -758,6 +827,105 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
 </div>
 
 <script>
+
+function fileSelected() {
+
+  const fileInput = document.getElementById("csvFile");
+  const convertBtn = document.getElementById("convertBtn");
+  const status = document.getElementById("convertStatus");
+
+  if (fileInput.files.length) {
+    convertBtn.style.display = "inline-block";
+    status.textContent = "File selected: " + fileInput.files[0].name;
+  }
+
+}
+
+function convertCSV() {
+
+  const fileInput = document.getElementById("csvFile");
+  const status = document.getElementById("convertStatus");
+  const downloadBtn = document.getElementById("downloadJson");
+
+  if (!fileInput.files.length) {
+    status.textContent = "Please select a CSV file.";
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+
+    const text = e.target.result;
+    const lines = text.split("\n").filter(l => l.trim() !== "");
+
+    const headers = lines[0].split(",");
+    const cities = [];
+
+    function num(v){
+      const n = Number(v);
+      return isNaN(n) ? 0 : n;
+    }
+
+    for (let i = 1; i < lines.length; i++) {
+
+      const values = lines[i].split(",");
+      const row = {};
+
+      headers.forEach((h, j) => {
+        row[h.trim()] = values[j]?.trim();
+      });
+
+      const city = {
+        country: row.country,
+        continent: row.continent,
+        population: num(row.population),
+        year: num(row.year),
+        co2PerCapitaDay: num(row.co2PerCapitaDay),
+        noxPerCapitaDay: num(row.noxPerCapitaDay),
+        pm10PerCapitaDay: num(row.pm10PerCapitaDay),
+        energyMJPerCapitaDay: num(row.energyMJPerCapitaDay),
+        greenScore: num(row.greenScore),
+        sustainabilityIndex: num(row.sustainabilityIndex),
+        motorisationRate: num(row.motorisationRate),
+        greenMobilityIndex: num(row.greenMobilityIndex),
+        fossilFuelShare: num(row.fossilFuelShare),
+        renewableProxy: num(row.renewableProxy),
+        energySavingPotential: num(row.energySavingPotential),
+        annualCO2Tonnes: num(row.annualCO2Tonnes),
+
+        modalSplit: [
+          { mode: "Car", share: num(row.modalSplit_Car) },
+          { mode: "Bus", share: num(row.modalSplit_Bus) },
+          { mode: "Rail", share: num(row.modalSplit_Rail) },
+          { mode: "Motorcycle", share: num(row.modalSplit_Motorcycle) },
+          { mode: "Walking", share: num(row.modalSplit_Walking) },
+          { mode: "Cycling", share: num(row.modalSplit_Cycling) },
+          { mode: "ElectricCar", share: num(row.modalSplit_ElectricCar) }
+        ]
+      };
+
+      cities.push(city);
+    }
+
+    const json = JSON.stringify({ cities }, null, 2);
+
+    const blob = new Blob([json], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+
+    downloadBtn.href = url;
+    downloadBtn.download = "cities.json";
+    downloadBtn.style.display = "inline-block";
+
+    status.textContent = "Conversion complete.";
+  };
+
+  reader.readAsText(file);
+}
+
+
+
 function mLab(m){ return m === 'ElectricCar' ? 'Electric Vehicles' : m; }
 function toggleTheme(cb){
   document.documentElement.classList.toggle('light-mode', cb.checked);
