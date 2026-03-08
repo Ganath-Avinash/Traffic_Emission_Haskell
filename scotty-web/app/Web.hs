@@ -3,6 +3,9 @@
 module Main where
 
 import Web.Scotty
+import Web.Scotty.Trans (Options(..), scottyOpts)
+import Network.Wai.Handler.Warp (setHost, setPort, defaultSettings)
+
 import qualified Data.ByteString.Lazy as BL
 import Data.List (intercalate, isSuffixOf)
 import Data.Char (isSpace)
@@ -15,13 +18,14 @@ main :: IO ()
 main = do
   portEnv <- lookupEnv "PORT"
   let port = maybe 3000 id (portEnv >>= readMaybe)
+
   putStrLn ("Starting Scotty server on port " ++ show port)
 
   allFiles <- listDirectory "static"
   let jsonFiles = filter (".json" `isSuffixOf`) allFiles
   putStrLn ("Serving JSON files: " ++ show jsonFiles)
 
-  scotty port $ do
+  scottyOpts (Options 0 (setPort port $ setHost "0.0.0.0" defaultSettings)) $ do
 
     get "/" $
       file "static/index.html"
@@ -32,7 +36,7 @@ main = do
     get "/dashboard.html" $
       file "static/dashboard.html"
 
-    -- Serve every .json file found in static/
+    -- Serve every JSON file inside static/
     mapM_ (\f ->
       get (literal ("/" ++ f)) $ do
         jsonData <- liftIO $ BL.readFile ("static/" ++ f)
@@ -41,7 +45,7 @@ main = do
         raw jsonData
       ) jsonFiles
 
-    -- Aliases
+    -- API aliases
     get "/analysis" $ do
       jsonData <- liftIO $ BL.readFile "static/analysis.json"
       setHeader "Content-Type" "application/json; charset=utf-8"
@@ -55,7 +59,7 @@ main = do
       raw jsonData
 
 
--- CSV to JSON (future use)
+-- CSV → JSON (future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content
