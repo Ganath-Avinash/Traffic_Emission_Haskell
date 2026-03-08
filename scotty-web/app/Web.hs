@@ -10,7 +10,6 @@ import Control.Monad.IO.Class (liftIO)
 import System.Environment (lookupEnv)
 import System.Directory (listDirectory)
 import Text.Read (readMaybe)
-import qualified Data.Text.Lazy as TL
 
 main :: IO ()
 main = do
@@ -18,36 +17,31 @@ main = do
   let port = maybe 3000 id (portEnv >>= readMaybe)
   putStrLn ("Starting Scotty server on port " ++ show port)
 
-  -- Get all JSON files in static/
   allFiles <- listDirectory "static"
   let jsonFiles = filter (".json" `isSuffixOf`) allFiles
-
-  putStrLn ("Found JSON files: " ++ show jsonFiles)
+  putStrLn ("Serving JSON files: " ++ show jsonFiles)
 
   scotty port $ do
 
-    -- Login page
     get "/" $
       file "static/index.html"
 
     get "/index.html" $
       file "static/index.html"
 
-    -- Dashboard
     get "/dashboard.html" $
       file "static/dashboard.html"
 
-    -- Dynamically serve each JSON file found in static/
-    mapM_ (\f -> do
-      let route = TL.pack ("/" ++ f)
-      get (literal (TL.unpack route)) $ do
+    -- Serve every .json file found in static/
+    mapM_ (\f ->
+      get (literal ("/" ++ f)) $ do
         jsonData <- liftIO $ BL.readFile ("static/" ++ f)
         setHeader "Content-Type" "application/json; charset=utf-8"
         setHeader "Access-Control-Allow-Origin" "*"
         raw jsonData
       ) jsonFiles
 
-    -- Keep these aliases too
+    -- Aliases
     get "/analysis" $ do
       jsonData <- liftIO $ BL.readFile "static/analysis.json"
       setHeader "Content-Type" "application/json; charset=utf-8"
@@ -61,7 +55,7 @@ main = do
       raw jsonData
 
 
--- CSV → JSON (future use)
+-- CSV to JSON (future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content
