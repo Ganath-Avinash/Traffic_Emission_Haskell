@@ -4,46 +4,64 @@ module Main where
 
 import Web.Scotty
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text.Lazy as TL
-import Data.List (intercalate)
+import Data.List (intercalate, isSuffixOf)
 import Data.Char (isSpace)
+import Control.Monad.IO.Class (liftIO)
+import System.Environment (lookupEnv)
+import System.Directory (listDirectory)
+import Text.Read (readMaybe)
+import qualified Data.Text.Lazy as TL
 
 main :: IO ()
-main = scotty 3000 $ do
+main = do
+  portEnv <- lookupEnv "PORT"
+  let port = maybe 3000 id (portEnv >>= readMaybe)
+  putStrLn ("Starting Scotty server on port " ++ show port)
 
-  -- Serve login/auth page
-  get "/" $ do
-    file "static/index.html"
+  -- Get all JSON files in static/
+  allFiles <- listDirectory "static"
+  let jsonFiles = filter (".json" `isSuffixOf`) allFiles
 
-  get "/index.html" $ do
-    file "static/index.html"
+  putStrLn ("Found JSON files: " ++ show jsonFiles)
 
-  -- Serve main dashboard
-  get "/dashboard.html" $ do
-    file "static/dashboard.html"
+  scotty port $ do
 
-  -- Serve analysis.json from static folder
-  get "/analysis" $ do
-    jsonData <- liftIO $ BL.readFile "static/analysis.json"
-    setHeader "Content-Type" "application/json; charset=utf-8"
-    setHeader "Access-Control-Allow-Origin" "*"
-    raw jsonData
+    -- Login page
+    get "/" $
+      file "static/index.html"
 
-  -- Serve analysis.json as direct file request
-  get "/analysis.json" $ do
-    jsonData <- liftIO $ BL.readFile "static/analysis.json"
-    setHeader "Content-Type" "application/json; charset=utf-8"
-    setHeader "Access-Control-Allow-Origin" "*"
-    raw jsonData
+    get "/index.html" $
+      file "static/index.html"
 
-  -- Alternative endpoint
-  get "/api/analysis" $ do
-    jsonData <- liftIO $ BL.readFile "static/analysis.json"
-    setHeader "Content-Type" "application/json; charset=utf-8"
-    setHeader "Access-Control-Allow-Origin" "*"
-    raw jsonData
+    -- Dashboard
+    get "/dashboard.html" $
+      file "static/dashboard.html"
 
--- | Parse CSV and convert to JSON array of objects (for future use)
+    -- Dynamically serve each JSON file found in static/
+    mapM_ (\f -> do
+      let route = TL.pack ("/" ++ f)
+      get (literal (TL.unpack route)) $ do
+        jsonData <- liftIO $ BL.readFile ("static/" ++ f)
+        setHeader "Content-Type" "application/json; charset=utf-8"
+        setHeader "Access-Control-Allow-Origin" "*"
+        raw jsonData
+      ) jsonFiles
+
+    -- Keep these aliases too
+    get "/analysis" $ do
+      jsonData <- liftIO $ BL.readFile "static/analysis.json"
+      setHeader "Content-Type" "application/json; charset=utf-8"
+      setHeader "Access-Control-Allow-Origin" "*"
+      raw jsonData
+
+    get "/api/analysis" $ do
+      jsonData <- liftIO $ BL.readFile "static/analysis.json"
+      setHeader "Content-Type" "application/json; charset=utf-8"
+      setHeader "Access-Control-Allow-Origin" "*"
+      raw jsonData
+
+
+-- CSV → JSON (future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content
@@ -58,7 +76,7 @@ rowToJson header vals
   | length vals /= length header = ""
   | otherwise =
       let pairs  = zip header vals
-          fields = map (\(k, v) -> jsonField k v) pairs
+          fields = map (\(k,v) -> jsonField k v) pairs
       in "{" ++ intercalate ", " fields ++ "}"
 
 jsonField :: String -> String -> String
@@ -74,8 +92,8 @@ encodeVal s
 
 isNumeric :: String -> Bool
 isNumeric "" = False
-isNumeric s  =
-  case reads s :: [(Double, String)] of
+isNumeric s =
+  case reads s :: [(Double,String)] of
     [(_, "")] -> True
     _         -> False
 

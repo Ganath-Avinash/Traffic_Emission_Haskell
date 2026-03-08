@@ -4,148 +4,132 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TransportSense — Sign In</title>
+<link rel="icon" type="image/png" href="img/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- ── FIREBASE SDK ── Replace with your own Firebase config ── -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-           sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup,
-           onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+         signInWithPopup, GoogleAuthProvider, onAuthStateChanged,
+         sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
-  // ── YOUR FIREBASE CONFIG HERE ────────────────────────────────
-  const firebaseConfig = {
-    apiKey:            "YOUR_API_KEY",
-    authDomain:        "YOUR_PROJECT.firebaseapp.com",
-    projectId:         "YOUR_PROJECT_ID",
-    storageBucket:     "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId:             "YOUR_APP_ID"
-  };
-  // ─────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyD7Z-RI4UOeyYxeWv4VVQQvCZ9kGdaqevM",
+  authDomain: "transport-emission.firebaseapp.com",
+  projectId: "transport-emission",
+  storageBucket: "transport-emission.firebasestorage.app",
+  messagingSenderId: "375640972672",
+  appId: "1:375640972672:web:32237743f3307352b1b565"
+};
 
-  const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const googleProvider = new GoogleAuthProvider();
+const app           = initializeApp(firebaseConfig);
+const auth          = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
-  // Redirect if already logged in
-  onAuthStateChanged(auth, user => {
-    if (user) window.location.href = 'dashboard.html';
+if (window.location.search.includes('logout=true')) {
+  signOut(auth).then(() => {
+    history.replaceState(null, '', 'index.html');
   });
+}
 
-  // ── SIGN IN ──────────────────────────────────────────────────
-  window.handleSignIn = async () => {
-    const email    = document.getElementById('signin-email').value.trim();
-    const password = document.getElementById('signin-password').value;
-    setLoading('signin-btn', true);
-    clearError('signin-error');
+onAuthStateChanged(auth, user => {
+  if (user && !window.location.search.includes('logout=true')) {
+    window.location.href = 'dashboard.html';
+  }
+});
 
-    // ── TEMP ADMIN LOGIN (remove before going live) ──────────────
-    if (email === 'admin' && password === 'admin') {
-      window.location.href = 'dashboard.html';
-      return;
-    }
-    // ─────────────────────────────────────────────────────────────
+window.handleSignIn = async () => {
+  const email    = document.getElementById('signin-email').value.trim();
+  const password = document.getElementById('signin-password').value;
+  setLoading('signin-btn', true);
+  clearError('signin-error');
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    window.location.href = 'dashboard.html';
+  } catch (e) {
+    showError('signin-error', friendlyError(e.code));
+  }
+  setLoading('signin-btn', false);
+};
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = 'dashboard.html';
-    } catch (e) {
-      showError('signin-error', friendlyError(e.code));
-    }
-    setLoading('signin-btn', false);
+window.handleSignUp = async () => {
+  const email    = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const confirm  = document.getElementById('signup-confirm').value;
+  clearError('signup-error');
+  if (password !== confirm) { showError('signup-error', 'Passwords do not match.'); return; }
+  if (password.length < 6)  { showError('signup-error', 'Password must be at least 6 characters.'); return; }
+  setLoading('signup-btn', true);
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    window.location.href = 'dashboard.html';
+  } catch (e) {
+    showError('signup-error', friendlyError(e.code));
+  }
+  setLoading('signup-btn', false);
+};
+
+window.handleGoogle = async () => {
+  clearError('signin-error'); clearError('signup-error');
+  try {
+    await signInWithPopup(auth, googleProvider);
+    window.location.href = 'dashboard.html';
+  } catch (e) {
+    const active = document.querySelector('.auth-tab.active').dataset.tab;
+    showError(active + '-error', friendlyError(e.code));
+  }
+};
+
+window.handleReset = async () => {
+  const email = document.getElementById('signin-email').value.trim();
+  if (!email) { showError('signin-error', 'Enter your email above first.'); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showSuccess('signin-error', 'Reset email sent — check your inbox.');
+  } catch (e) {
+    showError('signin-error', friendlyError(e.code));
+  }
+};
+
+function friendlyError(code) {
+  const map = {
+    'auth/user-not-found':       'No account found with this email.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-email':        'Please enter a valid email address.',
+    'auth/email-already-in-use': 'An account with this email already exists.',
+    'auth/weak-password':        'Password must be at least 6 characters.',
+    'auth/too-many-requests':    'Too many attempts. Please try again later.',
+    'auth/popup-closed-by-user': 'Sign-in popup was closed.',
+    'auth/invalid-credential':   'Invalid email or password.',
   };
+  return map[code] || 'Something went wrong. Please try again.';
+}
 
-  // ── SIGN UP ──────────────────────────────────────────────────
-  window.handleSignUp = async () => {
-    const email    = document.getElementById('signup-email').value.trim();
-    const password = document.getElementById('signup-password').value;
-    const confirm  = document.getElementById('signup-confirm').value;
-    clearError('signup-error');
-    if (password !== confirm) { showError('signup-error', 'Passwords do not match.'); return; }
-    if (password.length < 6)  { showError('signup-error', 'Password must be at least 6 characters.'); return; }
-    setLoading('signup-btn', true);
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      window.location.href = 'dashboard.html';
-    } catch (e) {
-      showError('signup-error', friendlyError(e.code));
-    }
-    setLoading('signup-btn', false);
-  };
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.color = '#f87171'; el.style.display = 'block';
+}
+function showSuccess(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.color = '#4ade80'; el.style.display = 'block';
+}
+function clearError(id) {
+  const el = document.getElementById(id);
+  el.textContent = ''; el.style.display = 'none';
+}
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Please wait…' : btn.dataset.label;
+}
 
-  // ── GOOGLE SIGN IN ───────────────────────────────────────────
-  window.handleGoogle = async () => {
-    clearError('signin-error'); clearError('signup-error');
-    try {
-      await signInWithPopup(auth, googleProvider);
-      window.location.href = 'dashboard.html';
-    } catch (e) {
-      const active = document.querySelector('.auth-tab.active').dataset.tab;
-      showError(active + '-error', friendlyError(e.code));
-    }
-  };
-
-  // ── FORGOT PASSWORD ──────────────────────────────────────────
-  window.handleReset = async () => {
-    const email = document.getElementById('signin-email').value.trim();
-    if (!email) { showError('signin-error', 'Enter your email above first.'); return; }
-    try {
-      await sendPasswordResetEmail(auth, email);
-      showSuccess('signin-error', 'Reset email sent — check your inbox.');
-    } catch (e) {
-      showError('signin-error', friendlyError(e.code));
-    }
-  };
-
-  // ── HELPERS ──────────────────────────────────────────────────
-  function friendlyError(code) {
-    const map = {
-      'auth/user-not-found':       'No account found with this email.',
-      'auth/wrong-password':       'Incorrect password.',
-      'auth/invalid-email':        'Please enter a valid email address.',
-      'auth/email-already-in-use': 'An account with this email already exists.',
-      'auth/weak-password':        'Password must be at least 6 characters.',
-      'auth/too-many-requests':    'Too many attempts. Please try again later.',
-      'auth/popup-closed-by-user': 'Sign-in popup was closed.',
-      'auth/invalid-credential':   'Invalid email or password.',
-    };
-    return map[code] || 'Something went wrong. Please try again.';
-  }
-
-  function showError(id, msg) {
-    const el = document.getElementById(id);
-    el.textContent = msg;
-    el.style.color = '#f87171';
-    el.style.display = 'block';
-  }
-
-  function showSuccess(id, msg) {
-    const el = document.getElementById(id);
-    el.textContent = msg;
-    el.style.color = '#4ade80';
-    el.style.display = 'block';
-  }
-
-  function clearError(id) {
-    const el = document.getElementById(id);
-    el.textContent = '';
-    el.style.display = 'none';
-  }
-
-  function setLoading(btnId, loading) {
-    const btn = document.getElementById(btnId);
-    btn.disabled = loading;
-    btn.textContent = loading ? 'Please wait…' : btn.dataset.label;
-  }
-
-  // Allow Enter key to submit
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    const active = document.querySelector('.auth-tab.active')?.dataset.tab;
-    if (active === 'signin') window.handleSignIn();
-    if (active === 'signup') window.handleSignUp();
-  });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const active = document.querySelector('.auth-tab.active')?.dataset.tab;
+  if (active === 'signin') window.handleSignIn();
+  if (active === 'signup') window.handleSignUp();
+});
 </script>
 
 <style>

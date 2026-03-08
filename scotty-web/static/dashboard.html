@@ -4,22 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TransportSense — Urban Emission Intelligence</title>
+<link rel="icon" type="image/png" href="img/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+const fbApp = initializeApp({
+  apiKey: "AIzaSyD7Z-RI4UOeyYxeWv4VVQQvCZ9kGdaqevM",
+  authDomain: "transport-emission.firebaseapp.com",
+  projectId: "transport-emission",
+  storageBucket: "transport-emission.firebasestorage.app",
+  messagingSenderId: "375640972672",
+  appId: "1:375640972672:web:32237743f3307352b1b565"
+});
+const fbAuth = getAuth(fbApp);
+onAuthStateChanged(fbAuth, user => {
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
+  // User is authenticated — show the page
+  document.body.style.visibility = 'visible';
+  const el = document.getElementById('user-greeting');
+  if (el) {
+    const name = user.displayName || user.email || 'User';
+    el.textContent = 'Hi, ' + name;
+  }
+});
+</script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#080808;
+  --sidebar-bg:rgba(10,10,10,.92);
   --g1:rgba(255,255,255,.03);--g2:rgba(255,255,255,.06);--g3:rgba(255,255,255,.09);
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);--border3:rgba(255,255,255,.22);
-  --text:#ffffff;--text2:#d4d4d4;--text3:#a3a3a3;--text4:#616161;
+  --text:#ffffff;--text2:#d4d4d4;--text3:#a3a3a3;--text4:#8a8a8a;
   --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.07);--glass3:rgba(255,255,255,.11);
   --accent:#ffffff;--accent-dim:rgba(255,255,255,.7);
   --good:#4ade80;--warn:#facc15;--bad:#f87171;--info:#60a5fa;
   --sidebar:260px;
+  --chart-grid:rgba(255,255,255,.04);--chart-border:rgba(255,255,255,.06);
+  --chart-line:rgba(255,255,255,.7);--chart-line-fill:rgba(255,255,255,.04);
+  --chart-legend:#a3a3a3;
 }
+html.light-mode{
+  --bg:#f8f9fa;
+  --sidebar-bg:rgba(255,255,255,.92);
+  --g1:rgba(0,0,0,.03);--g2:rgba(0,0,0,.06);--g3:rgba(0,0,0,.09);
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.15);--border3:rgba(0,0,0,.22);
+  --text:#111111;--text2:#333333;--text3:#666666;--text4:#999999;
+  --glass:rgba(255,255,255,.6);--glass2:rgba(255,255,255,.8);--glass3:rgba(255,255,255,1);
+  --good:#16a34a;--warn:#ca8a04;--bad:#dc2626;--info:#2563eb;
+  --chart-grid:rgba(0,0,0,.06);--chart-border:rgba(0,0,0,.12);
+  --chart-line:rgba(30,30,30,.7);--chart-line-fill:rgba(30,30,30,.06);
+  --chart-legend:#555555;
+}
+html.light-mode .hamburger{background:rgba(255,255,255,.95);border-color:rgba(0,0,0,.15);box-shadow:0 2px 12px rgba(0,0,0,.1)}
+html.light-mode .hamburger span{background:#111}
 html{font-size:14px}
-body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh}
+body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh;visibility:hidden}
 body::before{content:'';position:fixed;inset:0;background:
   radial-gradient(ellipse 70% 60% at 15% 0%,rgba(255,255,255,.025) 0%,transparent 55%),
   radial-gradient(ellipse 50% 40% at 85% 100%,rgba(255,255,255,.018) 0%,transparent 55%);
@@ -32,7 +77,7 @@ body::before{content:'';position:fixed;inset:0;background:
 /* ── SIDEBAR ─────────────────────────────────────────────────── */
 .sidebar{
   width:var(--sidebar);flex-shrink:0;
-  background:rgba(10,10,10,.92);
+  background:var(--sidebar-bg);
   backdrop-filter:blur(24px) saturate(1.2);
   -webkit-backdrop-filter:blur(24px);
   border-right:1px solid var(--border);
@@ -56,7 +101,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .nav-item:hover{background:var(--g2);color:var(--text);border-left-color:var(--border3)}
 .nav-item.active{background:var(--glass3);color:var(--text);border-left-color:var(--text)}
 .nav-dot{width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.6}
-.status-bar{padding:.75rem 1.5rem;border-top:1px solid var(--border);font-size:10px;color:var(--text4);font-family:'JetBrains Mono'}
+.status-bar{padding:.75rem 1.5rem;border-top:1px solid var(--border);font-size:10px;color:var(--text4);font-family:'JetBrains Mono';display:flex;align-items:center}
 .status-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--good);margin-right:.45rem;animation:pulse 2.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
@@ -115,9 +160,9 @@ body::before{content:'';position:fixed;inset:0;background:
 .tbl-head{padding:.75rem 1.4rem;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
 table{width:100%;border-collapse:collapse}
 th{padding:.5rem 1rem;text-align:left;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border);font-weight:500;font-family:'JetBrains Mono'}
-td{padding:.5rem 1rem;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text3)}
+td{padding:.5rem 1rem;font-size:12px;border-bottom:1px solid var(--g1);color:var(--text3)}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.03)}
+tr:hover td{background:var(--g1)}
 td.num{color:var(--text);font-family:'JetBrains Mono';font-size:11px}
 td.good{color:var(--good)}
 td.warn{color:var(--warn)}
@@ -128,7 +173,7 @@ td.name{font-weight:500;color:var(--text)}
 .ctrl-row{display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.2rem}
 .ctrl-group{display:flex;flex-direction:column;gap:.3rem}
 .ctrl-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono'}
-select,input[type=number]{
+select,input[type=number],input[type=text]{
   background:var(--glass2);border:1px solid var(--border2);
   color:var(--text);padding:.42rem .75rem;
   font-family:'Inter';font-size:12px;
@@ -136,9 +181,41 @@ select,input[type=number]{
 }
 select:focus,input:focus{border-color:var(--border3);background:var(--glass3);box-shadow:0 0 0 2px rgba(255,255,255,.06)}
 select{min-width:160px}
-select option{background:#141414;color:#ffffff;font-size:13px}
-input[type=range]{-webkit-appearance:none;height:2px;background:rgba(255,255,255,.12);border:none;border-radius:2px;outline:none;cursor:pointer;flex:1;min-width:100px}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--text);cursor:pointer}
+select option{background:var(--bg);color:var(--text);font-size:13px}
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--thumb-color, var(--text));
+  cursor: ew-resize;
+  border: 2px solid var(--bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.15s;
+}
+input[type=range]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--thumb-color, var(--text));
+  cursor: ew-resize;
+  border: 2px solid var(--bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
 
 /* ── BADGE ───────────────────────────────────────────────────── */
 .badge{display:inline-block;padding:.15rem .45rem;border-radius:4px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-family:'JetBrains Mono'}
@@ -146,7 +223,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .badge-amber{background:rgba(250,204,21,.12);color:var(--warn)}
 .badge-red{background:rgba(248,113,113,.12);color:var(--bad)}
 .badge-blue{background:rgba(96,165,250,.12);color:var(--info)}
-.badge-white{background:rgba(255,255,255,.1);color:var(--text2)}
+.badge-white{background:var(--glass3);color:var(--text2)}
 
 /* ── REGION PILLS ────────────────────────────────────────────── */
 .region-filter-wrap{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.1rem}
@@ -158,7 +235,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   font-weight:400;
 }
 .region-pill:hover{border-color:var(--border3);color:var(--text)}
-.region-pill.active{background:var(--text);border-color:var(--text);color:#000;font-weight:600}
+.region-pill.active{background:var(--text);border-color:var(--text);color:var(--bg);font-weight:600}
 
 /* ── CALCULATOR ──────────────────────────────────────────────── */
 .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
@@ -168,7 +245,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .mode-label{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:.4rem}
 .mode-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .mode-share-val{font-size:12px;color:var(--text);text-align:right;font-family:'JetBrains Mono';font-weight:500}
-.calc-btn{width:100%;padding:.7rem;background:var(--text);border:none;color:#000;font-family:'Inter';font-size:13px;font-weight:700;letter-spacing:.05em;border-radius:8px;cursor:pointer;transition:all .15s;margin-top:.7rem}
+.calc-btn{width:100%;padding:.7rem;background:var(--text);border:none;color:var(--bg);font-family:'Inter';font-size:13px;font-weight:700;letter-spacing:.05em;border-radius:8px;cursor:pointer;transition:all .15s;margin-top:.7rem}
 .calc-btn:hover{background:var(--text2);transform:translateY(-1px)}
 .result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:.9rem}
 .result-card{background:var(--glass2);border:1px solid var(--border);border-radius:10px;padding:.9rem;text-align:center}
@@ -197,7 +274,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .import-sub{font-size:12px;color:var(--text4);margin-bottom:1.4rem}
 .import-btn{
   display:inline-block;padding:.55rem 1.4rem;
-  background:var(--text);color:#000;
+  background:var(--text);color:var(--bg);
   font-weight:600;font-size:13px;border-radius:8px;cursor:pointer;
   transition:all .15s;border:none;
 }
@@ -221,16 +298,55 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .ai-card-desc{font-size:11px;color:var(--text4);line-height:1.5}
 .ai-disclaimer{font-size:11px;color:var(--text4);text-align:center;padding:.8rem;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono'}
 
+/* ── CHAT BOT ────────────────────────────────────────────────── */
+.chat-msg { display:flex; gap:.8rem; align-items:flex-end; max-width:90% }
+.chat-msg.user { align-self:flex-end; flex-direction:row-reverse }
+.chat-avatar { width:28px; height:28px; border-radius:50%; background:var(--text); color:var(--bg); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; flex-shrink:0 }
+.chat-msg.user .chat-avatar { background:var(--info) }
+.chat-bubble { padding:.7rem 1.1rem; border-radius:14px; font-size:13px; line-height:1.5; background:var(--glass3); color:var(--text) }
+.chat-msg.user .chat-bubble { background:var(--info); color:#fff; border-bottom-right-radius:4px }
+.chat-msg.ai .chat-bubble { border-bottom-left-radius:4px; border:1px solid var(--border) }
+.chat-typing{ display:flex; gap:4px; padding:0.4rem 0.2rem }
+.chat-typing span{ width:5px; height:5px; background:var(--text4); border-radius:50%; animation:chatBounce 1.4s infinite ease-in-out both }
+.chat-typing span:nth-child(1){ animation-delay:-0.32s }
+.chat-typing span:nth-child(2){ animation-delay:-0.16s }
+@keyframes chatBounce { 0%, 80%, 100% { transform: scale(0) } 40% { transform: scale(1) } }
+
 .modal-chart-wrap{position:relative;width:100%;overflow:hidden}
 .modal-chart-wrap canvas{display:block;width:100%!important}
 @media(max-width:960px){
   :root{--sidebar:0px}
-  .sidebar{transform:translateX(-100%)}
+  .sidebar{width:260px;transform:translateX(-100%);transition:transform .3s ease}
+  .sidebar.open{transform:translateX(0)}
   .main{margin-left:0}
   .cards-4{grid-template-columns:repeat(2,1fr)}
   .chart-grid-2{grid-template-columns:1fr}
   .calc-grid{grid-template-columns:1fr}
   .ai-grid{grid-template-columns:repeat(2,1fr)}
+  .hamburger{display:flex!important}
+  .sidebar-overlay{display:block}
+  .sidebar-overlay.active{opacity:1;pointer-events:auto}
+  .page{padding:2rem 1.2rem;padding-top:4rem}
+}
+.hamburger{
+  display:none;position:fixed;top:1rem;left:1rem;z-index:300;
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(30,30,30,.95);border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;cursor:pointer;
+  flex-direction:column;gap:5px;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+.hamburger span{
+  display:block;width:20px;height:2px;background:#fff;border-radius:2px;
+  transition:all .25s;
+}
+.hamburger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.active span:nth-child(2){opacity:0}
+.hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:190;opacity:0;transition:opacity .3s ease;pointer-events:none;
 }
 </style>
 </head>
@@ -243,7 +359,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 </div>
 
 <div class="shell">
-  <nav class="sidebar">
+  <button class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileNav()"></div>
+  <nav class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-eyebrow">Urban Analytics</div>
       <div class="brand-name">Transport<span>Sense</span></div>
@@ -252,6 +372,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav">
       <div class="nav-section">Explore</div>
       <div class="nav-item active" data-page="global"><span class="nav-dot"></span>Global Stats</div>
+      <div class="nav-section" style="margin-top:.75rem">Emission Analysis</div>
       <div class="nav-item" data-page="sensitivity"><span class="nav-dot"></span>Sensitivity</div>
       <div class="nav-item" data-page="compare"><span class="nav-dot"></span>Country Compare</div>
       <div class="nav-item" data-page="modal"><span class="nav-dot"></span>Modal Split</div>
@@ -260,10 +381,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="nav-item" data-page="calculator"><span class="nav-dot"></span>Calculator</div>
       <div class="nav-item" data-page="import"><span class="nav-dot"></span>Import Dataset</div>
       <div class="nav-item" data-page="aipredict"><span class="nav-dot"></span>AI Prediction</div>
+      <div style="margin-top:auto"></div>
+      <label class="nav-item" style="cursor:pointer; justify-content:space-between; padding-right:1.3rem;">
+        <div style="display:flex; align-items:center; gap:.6rem;">
+          <span class="nav-dot" style="background:var(--text)"></span>Theme
+        </div>
+        <div class="theme-switch" style="width:34px; height:20px; border-radius:20px; background:var(--border2); position:relative; flex-shrink:0;">
+          <div class="theme-knob" style="width:14px; height:14px; border-radius:50%; background:var(--text); position:absolute; top:3px; left:3px; transition:all 0.25s;"></div>
+        </div>
+        <input type="checkbox" style="display:none;" onchange="toggleTheme(this)">
+      </label>
+      <a href="index.html?logout=true" class="nav-item" style="text-decoration:none"><span class="nav-dot" style="background:var(--bad)"></span>Sign Out</a>
     </div>
     <div class="status-bar">
       <span class="status-dot"></span>
-      <span id="status-text">Loading…</span>
+      <span id="user-greeting" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;color:var(--text);font-size:12px;font-weight:500">Hi, User</span>
     </div>
   </nav>
 
@@ -311,7 +443,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <!-- ═══════════ SENSITIVITY ═══════════ -->
     <section class="page" id="page-sensitivity">
       <div class="page-eyebrow">02 · Elasticity</div>
-      <h1 class="page-title">Mode <em>Impact Matrix</em></h1>
+      <h1 class="page-title">Mode <em>Impact Matrix</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-label" style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:.4rem">Filter by Region</div>
       <div class="region-filter-wrap" id="sens-region-pills"></div>
       <div class="ctrl-row">
@@ -343,7 +475,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <!-- ═══════════ COUNTRY COMPARE ═══════════ -->
     <section class="page" id="page-compare">
       <div class="page-eyebrow">03 · Cross-Country</div>
-      <h1 class="page-title">Country <em>Comparison</em></h1>
+      <h1 class="page-title">Country <em>Comparison</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-row">
         <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="compare-year"></select></div>
         <div class="ctrl-group"><div class="ctrl-label">Metric</div>
@@ -360,10 +492,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         </div>
         <div class="ctrl-group"><div class="ctrl-label">Show Top N</div>
           <select id="compare-topn">
-            <option value="10">Top 10</option>
-            <option value="30" selected>Top 30</option>
-            <option value="50">Top 50</option>
-            <option value="100">Top 100</option>
+            <option value="10" selected>Top 10</option>
             <option value="0">All Countries</option>
           </select>
         </div>
@@ -388,15 +517,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <!-- ═══════════ MODAL SPLIT ═══════════ -->
     <section class="page" id="page-modal">
       <div class="page-eyebrow">04 · Transport Modes</div>
-      <h1 class="page-title">Modal <em>Split Analysis</em></h1>
+      <h1 class="page-title">Modal <em>Split Analysis</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-row">
         <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="modal-year"></select></div>
         <div class="ctrl-group"><div class="ctrl-label">Show Top N Countries</div>
           <select id="modal-topn">
-            <option value="10">Top 10</option>
-            <option value="30" selected>Top 30</option>
-            <option value="50">Top 50</option>
-            <option value="100">Top 100</option>
+            <option value="10" selected>Top 10</option>
             <option value="0">All Countries</option>
           </select>
         </div>
@@ -421,7 +547,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <!-- ═══════════ TIME SERIES ═══════════ -->
     <section class="page" id="page-timeseries">
       <div class="page-eyebrow">05 · Time Series</div>
-      <h1 class="page-title">Year-by-Year <em>Animation</em></h1>
+      <h1 class="page-title">Year-by-Year <em>Animation</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="anim-controls">
         <button class="anim-btn" id="anim-play-btn" onclick="toggleAnimation()">▶ PLAY</button>
         <div class="anim-year-display" id="anim-year-label">2010</div>
@@ -433,14 +559,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <div class="ctrl-group"><div class="ctrl-label">Metric</div>
           <select id="anim-metric" onchange="renderAnimFrame()" style="min-width:150px">
             <option value="co2">CO₂ per Capita/Day</option><option value="green">Green Score</option>
-            <option value="fossil">Fossil Fuel %</option><option value="ev">Electric Car Share</option>
+            <option value="fossil">Fossil Fuel %</option><option value="ev">Electric Vehicles Share</option>
           </select></div>
         <div class="ctrl-group"><div class="ctrl-label">Region</div>
           <select id="anim-region" onchange="renderAnimFrame()" style="min-width:130px">
-            <option value="ALL">All Regions</option><option value="Europe">Europe</option>
+            <option value="Europe" selected>Europe</option>
             <option value="Asia">Asia</option><option value="Africa">Africa</option>
             <option value="North America">North America</option><option value="South America">South America</option>
             <option value="Oceania">Oceania</option>
+            <option value="Antarctica">Antarctica</option>
           </select></div>
       </div>
       <div class="chart-box" style="margin-bottom:.8rem">
@@ -448,15 +575,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <div class="chart-sub">Animated bar chart — use play button or drag slider</div>
         <canvas id="chart-anim" height="180"></canvas>
       </div>
+      <div style="margin-top:1.6rem;margin-bottom:.8rem;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';padding-bottom:.5rem;border-bottom:1px solid var(--border)">EU (Europe) Analysis</div>
       <div class="chart-grid chart-grid-2">
         <div class="chart-box">
-          <div class="chart-title">CO₂ Change 2010→2025</div>
-          <div class="chart-sub">Biggest absolute CO₂ change (kg/p/day)</div>
+          <div class="chart-title">EU CO₂ Change 2010→2025</div>
+          <div class="chart-sub">Biggest absolute CO₂ change in Europe (kg/p/day)</div>
           <canvas id="chart-anim-delta" height="260"></canvas>
         </div>
         <div class="chart-box">
-          <div class="chart-title">Global Average Trend</div>
-          <div class="chart-sub">Average across all countries per year</div>
+          <div class="chart-title">EU Average Trend</div>
+          <div class="chart-sub">Average across European countries per year</div>
           <canvas id="chart-anim-avg" height="260"></canvas>
         </div>
       </div>
@@ -465,10 +593,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <!-- ═══════════ CALCULATOR ═══════════ -->
     <section class="page" id="page-calculator">
       <div class="page-eyebrow">06 · Tools</div>
-      <h1 class="page-title">Emission <em>Calculator</em></h1>
+      <h1 class="page-title">Emission <em>Calculator</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <div class="ctrl-row">
-        <div class="ctrl-group"><div class="ctrl-label">Country</div><select id="calc-country"></select></div>
-        <div class="ctrl-group"><div class="ctrl-label">Year</div><select id="calc-year"></select></div>
+        <div class="ctrl-group"><div class="ctrl-label">Place</div><input type="text" id="calc-place" value="My City" style="width:160px"></div>
+        <div class="ctrl-group"><div class="ctrl-label">Year</div><input type="number" id="calc-year" value="2025" style="width:80px"></div>
         <div class="ctrl-group"><div class="ctrl-label">Distance (km/trip)</div><input type="number" id="calc-dist" value="12" min="1" max="500" style="width:80px"></div>
         <div class="ctrl-group"><div class="ctrl-label">Trips / Day</div><input type="number" id="calc-trips" value="2" min="1" max="20" style="width:70px"></div>
         <div class="ctrl-group"><div class="ctrl-label">Population</div><input type="number" id="calc-pop" value="1000000" min="1000" style="width:110px"></div>
@@ -500,7 +628,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
           <div class="chart-box"><div class="chart-title">Green vs Fossil Split</div><canvas id="chart-result-split" height="250"></canvas></div>
         </div>
         <div class="tbl-wrap">
-          <div class="tbl-head">Detailed Results</div>
+          <div class="tbl-head" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Detailed Results</span>
+            <div style="display:flex;gap:10px">
+              <button class="calc-btn" onclick="exportCalcCSV()" style="padding:0.4rem 1rem;font-size:12px;width:auto">Export CSV</button>
+              <button class="calc-btn" onclick="exportCalcPDF()" style="padding:0.4rem 1rem;font-size:12px;width:auto">Export PDF</button>
+            </div>
+          </div>
           <table><thead><tr><th>Metric</th><th>Value</th><th>Notes</th></tr></thead>
           <tbody id="result-table"></tbody></table>
         </div>
@@ -510,7 +644,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <!-- ═══════════ IMPORT DATASET ═══════════ -->
     <section class="page" id="page-import">
       <div class="page-eyebrow">07 · Data</div>
-      <h1 class="page-title">Import <em>Dataset</em></h1>
+      <h1 class="page-title">Import <em>Dataset</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
       <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(this)">
       <div class="import-zone" id="import-zone"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -529,8 +663,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
           <div class="mini-section-title">📊 Imported — Global Stats</div>
           <div class="cards cards-4" id="imp-kpis"></div>
           <div class="chart-grid chart-grid-2">
-            <div class="chart-box"><div class="chart-title">CO₂ by Continent</div><canvas id="chart-imp-co2" height="200"></canvas></div>
-            <div class="chart-box"><div class="chart-title">Green Score by Continent</div><canvas id="chart-imp-green" height="200"></canvas></div>
+            <div class="chart-box"><div class="chart-title">Modal Share by Continent</div><div class="chart-sub">Average transport mode distribution per continent</div><canvas id="chart-imp-modal-cont" height="200"></canvas></div>
+            <div class="chart-box"><div class="chart-title">Green Score by Continent</div><div class="chart-sub">Average Rail + EV + Cycling + Walking share %</div><canvas id="chart-imp-green" height="200"></canvas></div>
           </div>
         </div>
         <div class="mini-section">
@@ -557,105 +691,119 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <!-- ═══════════ AI PREDICTION ═══════════ -->
     <section class="page" id="page-aipredict">
       <div class="page-eyebrow">08 · Intelligence</div>
-      <h1 class="page-title">AI <em>Prediction</em></h1>
+      <h1 class="page-title">AI <em>Prediction</em> <span style="font-size:14px; color:var(--text4); font-weight:normal; display:inline-block; margin-left:10px;">*Data analysis is only on EU (Europe)</span></h1>
 
-      <div class="chart-box" style="margin-bottom:1.6rem;max-width:780px">
-        <div style="font-size:13px;color:var(--text3);line-height:1.9">
-          <p style="margin-bottom:.7rem">This dashboard analyses <strong style="color:var(--text)">historical transport emission data</strong> from 196 countries across 16 years. While it excels at visualising patterns and trends, predicting <em>future</em> emissions requires AI reasoning.</p>
-          <p>Use the tools below to paste in data from this dashboard and ask AI models to forecast trends, simulate policy changes, or generate country-level decarbonisation strategies.</p>
+      <div class="ai-main-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+        <!-- LEFT: Future Prediction -->
+        <div class="chart-box" style="margin-bottom:0;display:flex;flex-direction:column">
+          <div class="chart-title" style="margin-bottom:.8rem">Future Forecast (2026–2035)</div>
+          <div class="ctrl-row" style="margin-bottom:1rem">
+            <div class="ctrl-group"><div class="ctrl-label">Country</div><select id="ai-country" onchange="renderAIPrediction()"></select></div>
+            <div class="ctrl-group"><div class="ctrl-label">Metric</div>
+              <select id="ai-metric" onchange="renderAIPrediction()">
+                <option value="co2">CO₂ per Capita</option>
+                <option value="green">Green Score</option>
+                <option value="motor">Motorisation Rate</option>
+              </select>
+            </div>
+          </div>
+          <div style="flex:1;position:relative;min-height:240px">
+            <canvas id="chart-ai-predict"></canvas>
+          </div>
+          <div class="result-grid" style="margin-top:1rem;margin-bottom:0" id="ai-predict-kpis"></div>
+        </div>
+
+        <!-- RIGHT: AI Chatbot -->
+        <div class="chart-box" style="margin-bottom:0;display:flex;flex-direction:column;height:480px;padding:0;overflow:hidden">
+          <div style="padding:1.4rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--glass2)">
+            <div>
+              <div class="chart-title" style="margin-bottom:0">TransportSense AI Assistant</div>
+              <div class="chart-sub" style="margin-bottom:0">Powered by Llama 3 on Groq</div>
+            </div>
+            <button class="anim-btn" onclick="document.getElementById('ai-key-modal').style.display='flex'">⚙️ Setup API</button>
+          </div>
+          <div id="ai-chat-box" style="flex:1;overflow-y:auto;padding:1.4rem;display:flex;flex-direction:column;gap:1rem">
+            <div class="chat-msg ai">
+              <div class="chat-avatar">AI</div>
+              <div class="chat-bubble">Hello! I can analyse the transport data you're viewing. Ask me about trends, country comparisons, or modal shifts.</div>
+            </div>
+          </div>
+          <div style="padding:1rem;border-top:1px solid var(--border);background:var(--glass2)">
+            <form onsubmit="handleAIChat(event)" style="display:flex;gap:.5rem">
+              <input type="text" id="ai-chat-input" placeholder="Ask about emissions or trends..." style="flex:1;background:var(--glass3);border:1px solid var(--border);padding:.6rem 1rem;border-radius:20px;color:var(--text);outline:none">
+              <button type="submit" class="import-btn" id="ai-chat-btn" style="border-radius:20px;padding:.6rem 1.2rem">Send</button>
+            </form>
+          </div>
         </div>
       </div>
 
-      <div style="font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:1rem">How to use</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:2rem">
-        <div class="card" style="text-align:center">
-          <div style="font-size:1.4rem;margin-bottom:.5rem">①</div>
-          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:.3rem">Export Data</div>
-          <div style="font-size:11px;color:var(--text4)">Copy numbers from any chart or table in this dashboard</div>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="font-size:1.4rem;margin-bottom:.5rem">②</div>
-          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:.3rem">Open an AI Tool</div>
-          <div style="font-size:11px;color:var(--text4)">Click any tool below — it opens in a new tab</div>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="font-size:1.4rem;margin-bottom:.5rem">③</div>
-          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:.3rem">Ask a Question</div>
-          <div style="font-size:11px;color:var(--text4)">Paste your data and ask for predictions, trends, or recommendations</div>
+      <!-- API Key Modal -->
+      <div id="ai-key-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div class="calc-panel" style="width:100%;max-width:400px;background:var(--bg)">
+          <div class="chart-title">Configure Groq API</div>
+          <div class="chart-sub" style="margin-bottom:1.5rem">Get your free API key from <a href="https://console.groq.com/keys" target="_blank" style="color:var(--info)">Groq Console</a>. No credit card required.</div>
+          <div class="ctrl-group" style="margin-bottom:1.5rem">
+            <div class="ctrl-label">Groq API Key</div>
+            <input type="password" id="ai-api-key" placeholder="gsk_..." style="width:100%">
+          </div>
+          <div style="display:flex;gap:1rem;justify-content:flex-end">
+            <button class="anim-btn" onclick="document.getElementById('ai-key-modal').style.display='none'">Cancel</button>
+            <button class="import-btn" onclick="saveAIKey()">Save Key</button>
+          </div>
         </div>
       </div>
-
-      <div style="font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text4);font-family:'JetBrains Mono';margin-bottom:1rem">AI Tools</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-bottom:1.4rem">
-
-        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
-          <div style="font-size:2rem;flex-shrink:0">✦</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Google Gemini</div>
-            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Best for real-time web-grounded transport research and policy analysis across countries.</div>
-            <a href="https://gemini.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Gemini →</a>
-          </div>
-        </div>
-
-        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
-          <div style="font-size:2rem;flex-shrink:0">⬡</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">ChatGPT</div>
-            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Use GPT-4o to model modal shift scenarios, predict green score improvements, or draft transport policy briefs.</div>
-            <a href="https://chatgpt.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open ChatGPT →</a>
-          </div>
-        </div>
-
-        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
-          <div style="font-size:2rem;flex-shrink:0">◈</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Claude</div>
-            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Upload your exported JSON data directly to Claude for deep analysis, chart interpretation, and emission reduction planning.</div>
-            <a href="https://claude.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Claude →</a>
-          </div>
-        </div>
-
-        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
-          <div style="font-size:2rem;flex-shrink:0">⬙</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Microsoft Copilot</div>
-            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Integrated with Bing search — great for finding current emission statistics and cross-referencing with live data.</div>
-            <a href="https://copilot.microsoft.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Copilot →</a>
-          </div>
-        </div>
-
-        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
-          <div style="font-size:2rem;flex-shrink:0">◎</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">Perplexity</div>
-            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">AI-powered search for latest research on urban transport emissions, green mobility, and city decarbonisation with citations.</div>
-            <a href="https://www.perplexity.ai" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open Perplexity →</a>
-          </div>
-        </div>
-
-        <div class="chart-box" style="display:flex;align-items:center;gap:1.4rem;padding:1.3rem 1.5rem;margin-bottom:0">
-          <div style="font-size:2rem;flex-shrink:0">◉</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:.25rem">NotebookLM</div>
-            <div style="font-size:11px;color:var(--text4);line-height:1.6;margin-bottom:.7rem">Upload transport research papers alongside your dataset to generate summaries, Q&A sessions, and audio briefings.</div>
-            <a href="https://notebooklm.google.com" target="_blank" rel="noopener" style="display:inline-block;padding:.35rem .9rem;background:var(--text);color:#000;font-size:11px;font-weight:600;border-radius:6px;text-decoration:none;transition:all .15s" onmouseover="this.style.background='#d4d4d4'" onmouseout="this.style.background='var(--text)'">Open NotebookLM →</a>
-          </div>
-        </div>
-
-      </div>
-      <div class="ai-disclaimer">These are external tools — TransportSense does not send data automatically. Copy relevant data manually when querying AI tools.</div>
     </section>
 
   </main>
 </div>
 
 <script>
+function mLab(m){ return m === 'ElectricCar' ? 'Electric Vehicles' : m; }
+function toggleTheme(cb){
+  document.documentElement.classList.toggle('light-mode', cb.checked);
+  const knob = document.querySelector('.theme-knob');
+  if(knob) knob.style.transform = cb.checked ? 'translateX(14px)' : 'translateX(0)';
+  // Re-render all currently visible charts so colours update
+  setTimeout(()=>{
+    const activePage=document.querySelector('.page.active');
+    if(activePage){
+      const pid=activePage.id.replace('page-','');
+      // Destroy all charts and re-render the active page
+      Object.keys(charts).forEach(k=>{try{charts[k].destroy();}catch(e){}delete charts[k];});
+      if(calcDonutChart){try{calcDonutChart.destroy();}catch(e){}calcDonutChart=null;}
+      dispatchPage(pid);
+      // Also re-render the time animation side charts if on that page
+      if(pid==='timeseries'){renderAnimDelta();renderAnimAvg();}
+      if(pid==='global'){renderGlobalTrend();}
+      // Re-render import dashboard charts if data is loaded and visible
+      if(pid==='import' && _lastImportData){
+        renderImportDashboard(_lastImportData.raw, _lastImportData.countries, _lastImportData.years);
+      }
+    }
+  },50);
+}
+function toggleMobileNav(){
+  const sb = document.getElementById('sidebar');
+  const hb = document.getElementById('hamburger');
+  const ov = document.getElementById('sidebar-overlay');
+  const isOpen = sb.classList.toggle('open');
+  hb.classList.toggle('active', isOpen);
+  ov.classList.toggle('active', isOpen);
+}
+function closeMobileNav(){
+  const sb = document.getElementById('sidebar');
+  const hb = document.getElementById('hamburger');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.remove('open');
+  hb.classList.remove('active');
+  ov.classList.remove('active');
+}
 const EMISSION_FACTORS={Car:0.171,Motorcycle:0.103,Bus:0.089,Rail:0.041,ElectricCar:0.047,Walking:0.0,Cycling:0.0};
 
 let RAW=[],COUNTRIES=[],ALL_YEARS=[],MODES=[];
 let charts={},calcDonutChart=null;
 let animFrame=0,animTimer=null,animPlaying=false;
-const regionState={sens:'ALL',compare:'ALL',modal:'ALL'};
+const regionState={sens:'Europe',compare:'Europe',modal:'Europe'};
 
 const CONTINENT_COLORS={
   'Asia':         {solid:'rgba(248,113,113,.8)', line:'#f87171'},
@@ -664,6 +812,7 @@ const CONTINENT_COLORS={
   'South America':{solid:'rgba(74,222,128,.8)',  line:'#4ade80'},
   'Africa':       {solid:'rgba(251,146,60,.8)',  line:'#fb923c'},
   'Oceania':      {solid:'rgba(45,212,191,.8)',  line:'#2dd4bf'},
+  'Antarctica':   {solid:'rgba(203,213,225,.8)', line:'#cbd5e1'},
 };
 
 const MODE_COLORS={
@@ -680,19 +829,55 @@ const CITY_PALETTE=[
   '#848484','#6e6e6e','#606060'
 ];
 
+// Map of all continent data files to load
+const CONTINENT_FILES=[
+  'analysis.json',
+  'emissions_Africa.json',
+  'emissions_Antarctica.json',
+  'emissions_Asia.json',
+  'emissions_Australia.json',
+  'emissions_North_America.json',
+  'emissions_South_America.json'
+];
+// Normalize continent names (e.g. 'Australia' -> 'Oceania')
+const CONTINENT_NAME_MAP={'Australia':'Oceania'};
+
 async function boot(){
   try{
-    let jsonData=null;
-    for(const ep of['/analysis','./analysis.json','analysis.json','/api/analysis']){
-      try{const r=await fetch(ep);if(r.ok){const d=await r.json();if(d&&d.cities){jsonData=d;break;}}}catch(e){}
-    }
-    if(!jsonData)throw new Error('Could not load analysis.json');
-    RAW=parseData(jsonData);
+    // Load ALL continent files in parallel
+    const allCities=[];
+    const results=await Promise.allSettled(
+      CONTINENT_FILES.map(async file=>{
+        for(const prefix of['./','','/']){  
+          try{
+            const r=await fetch(prefix+file);
+            if(r.ok){const d=await r.json();if(d&&d.cities)return d;}
+          }catch(e){}
+        }
+        return null;
+      })
+    );
+    let loaded=0;
+    results.forEach(res=>{
+      if(res.status==='fulfilled'&&res.value&&res.value.cities){
+        res.value.cities.forEach(city=>{
+          // Normalize continent names
+          if(city.continent&&CONTINENT_NAME_MAP[city.continent]){
+            city.continent=CONTINENT_NAME_MAP[city.continent];
+          }
+          allCities.push(city);
+        });
+        loaded++;
+      }
+    });
+    if(allCities.length===0)throw new Error('Could not load any data files');
+    console.log(`Loaded ${loaded} continent files, ${allCities.length} total records`);
+    RAW=parseData({cities:allCities});
     COUNTRIES=[...new Set(RAW.map(r=>r.country))].sort();
     ALL_YEARS=[...new Set(RAW.map(r=>r.year))].sort();
-    document.getElementById('status-text').textContent=`${COUNTRIES.length} countries · ${ALL_YEARS.length} yrs`;
+    // user greeting is set by Firebase onAuthStateChanged above
     populateSelectors();buildRegionPills();renderGlobal();renderAnimDelta();renderAnimAvg();
-  }catch(e){document.getElementById('status-text').textContent='Error: '+e.message;}
+  }catch(e){const ug=document.getElementById('user-greeting');if(ug)ug.textContent='Error: '+e.message;}
   document.getElementById('loader').classList.add('out');
   setTimeout(()=>{const l=document.getElementById('loader');if(l)l.remove();},600);
 }
@@ -713,36 +898,61 @@ function latestData(fn){const ly=latestYear();return RAW.filter(r=>r.year===ly&&
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function topMode(ms){return Object.entries(ms).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-';}
 function countryColor(c,list){return CITY_PALETTE[(list||COUNTRIES).indexOf(c)%CITY_PALETTE.length]||CITY_PALETTE[0];}
-function allContinents(){return[...new Set(RAW.map(r=>r.continent))].sort();}
+function allContinents(){return [...new Set(RAW.map(r=>r.continent))].sort();}
 
+function getChartColors(){
+  const s=getComputedStyle(document.documentElement);
+  return{
+    tick:s.getPropertyValue('--text3').trim()||'#a3a3a3',
+    grid:s.getPropertyValue('--chart-grid').trim()||'rgba(255,255,255,.04)',
+    border:s.getPropertyValue('--chart-border').trim()||'rgba(255,255,255,.06)',
+    line:s.getPropertyValue('--chart-line').trim()||'rgba(255,255,255,.7)',
+    lineFill:s.getPropertyValue('--chart-line-fill').trim()||'rgba(255,255,255,.04)',
+    legend:s.getPropertyValue('--chart-legend').trim()||'#a3a3a3'
+  };
+}
 function baseOpts(extra){
+  const cc=getChartColors();
   return{responsive:true,animation:{duration:400},
     plugins:{legend:{display:false},...(extra||{})},
     scales:{
-      x:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9},maxRotation:55},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+      x:{ticks:{color:cc.tick,font:{family:'JetBrains Mono',size:9},maxRotation:0},grid:{color:cc.grid},border:{color:cc.border}},
+      y:{ticks:{color:cc.tick,font:{family:'JetBrains Mono',size:9}},grid:{color:cc.grid},border:{color:cc.border}}
     }};
 }
 function hBarOpts(){const o=baseOpts();o.indexAxis='y';o.scales.x.ticks.maxRotation=0;return o;}
+function legendOpts(extra){const cc=getChartColors();return{legend:{display:true,labels:{color:cc.legend,font:{family:'Inter',size:10},boxWidth:10,...(extra||{})}}};}
 
 function populateSelectors(){
   const yrsRev=[...ALL_YEARS].reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
-  ['sens-country','calc-country'].forEach(id=>{
+  ['sens-country'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    el.innerHTML=COUNTRIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+    const eligible=regionState.sens==='ALL'?COUNTRIES:[...new Set(RAW.filter(r=>r.continent===regionState.sens).map(r=>r.country))].sort();
+    el.innerHTML=eligible.map(c=>`<option value="${c}">${c}</option>`).join('');
   });
-  ['sens-year','compare-year','modal-year','calc-year'].forEach(id=>{
+  
+  const aiCountryEl=document.getElementById('ai-country');
+  if(aiCountryEl){
+    aiCountryEl.innerHTML=COUNTRIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+
+  ['sens-year','compare-year','modal-year'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     el.innerHTML=yrsRev;el.value=latestYear();
   });
+  const animSlider=document.getElementById('anim-year-slider');
+  if(animSlider && ALL_YEARS.length>0){
+    animSlider.max=ALL_YEARS.length-1;
+    document.getElementById('anim-year-label').textContent=ALL_YEARS[0];
+  }
 }
 
 function buildRegionPills(){
-  const conts=['ALL',...allContinents()];
+  const conts=allContinents();
   ['sens','compare','modal'].forEach(page=>{
     const wrap=document.getElementById(`${page}-region-pills`);if(!wrap)return;
-    wrap.innerHTML=conts.map(c=>`<div class="region-pill${c==='ALL'?' active':''}"
-      data-page="${page}" data-cont="${c}" onclick="onRegionPill(this)">${c==='ALL'?'All Regions':c}</div>`).join('');
+    wrap.innerHTML=conts.map(c=>`<div class="region-pill${c==='Europe'?' active':''}"
+      data-page="${page}" data-cont="${c}" onclick="onRegionPill(this)">${c}</div>`).join('');
   });
 }
 
@@ -766,15 +976,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   ['compare-year','compare-metric','compare-topn'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCompare));
   document.getElementById('modal-year')?.addEventListener('change',renderModal);
   document.getElementById('modal-topn')?.addEventListener('change',renderModal);
-  document.getElementById('calc-country')?.addEventListener('change',onCalcChange);
-  document.getElementById('calc-year')?.addEventListener('change',onCalcChange);
-  document.querySelectorAll('.nav-item').forEach(item=>{
+  document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
     item.addEventListener('click',()=>{
-      document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+      document.querySelectorAll('.nav-item[data-page]').forEach(i=>i.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       item.classList.add('active');
       document.getElementById('page-'+item.dataset.page)?.classList.add('active');
       if(RAW.length)dispatchPage(item.dataset.page);
+      closeMobileNav();
     });
   });
 });
@@ -785,7 +994,8 @@ function dispatchPage(p){
   if(p==='compare')renderCompare();
   if(p==='modal')renderModal();
   if(p==='timeseries')renderAnimFrame();
-  if(p==='calculator')onCalcChange();
+  if(p==='calculator')initCalculator();
+  if(p==='aipredict')renderAIPrediction();
 }
 
 // ── GLOBAL ───────────────────────────────────────────────────────────────────
@@ -800,7 +1010,7 @@ function renderGlobal(){
     <div class="card"><div class="card-label">Avg Green Score</div><div class="card-value good">${avgGreen.toFixed(1)}%</div><div class="card-sub">green mode share</div></div>`;
 
   const conts=allContinents();
-  const cd=conts.map(c=>{const r=data.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length,count:r.length};});
+  const cd=conts.map(c=>{const r=data.filter(d=>d.continent===c);return{c,avgCO2:r.length>0?r.reduce((s,d)=>s+d.co2,0)/r.length:0,avgGreen:r.length>0?r.reduce((s,d)=>s+d.greenScore,0)/r.length:0,count:r.length};});
   const co2S=[...cd].sort((a,b)=>b.avgCO2-a.avgCO2);
   destroyChart('global-co2');
   charts['global-co2']=new Chart(document.getElementById('chart-global-co2'),{type:'bar',
@@ -830,7 +1040,7 @@ function renderGlobal(){
     <td class="num good">${d.greenScore.toFixed(1)}%</td>
     <td class="num ${d.fossilFuelShare>80?'bad':''}">${d.fossilFuelShare.toFixed(1)}%</td>
     <td>${d.motorisationRate.toFixed(1)}%</td>
-    <td><span class="badge badge-white">${topMode(d.modalSplit)}</span></td></tr>`).join('');
+    <td><span class="badge badge-white">${mLab(topMode(d.modalSplit))}</span></td></tr>`).join('');
 }
 
 // ── SENSITIVITY ───────────────────────────────────────────────────────────────
@@ -850,21 +1060,26 @@ function _renderSensPanel(row,country,year,kpisId,tableId,co2Id,shiftId){
     <div class="card"><div class="card-label">CO₂/p/day</div><div class="card-value warn">${row.co2.toFixed(3)}</div><div class="card-sub">kg</div></div>
     <div class="card"><div class="card-label">Green Score</div><div class="card-value good">${row.greenScore.toFixed(1)}%</div><div class="card-sub">green share</div></div>
     <div class="card"><div class="card-label">Fossil Share</div><div class="card-value ${row.fossilFuelShare>70?'bad':'warn'}">${row.fossilFuelShare.toFixed(1)}%</div><div class="card-sub">fossil %</div></div>
-    <div class="card"><div class="card-label">Top Mode</div><div class="card-value" style="font-size:1.2rem">${topMode(row.modalSplit)}</div><div class="card-sub">${year}</div></div>`;
+    <div class="card"><div class="card-label">Top Mode</div><div class="card-value" style="font-size:1.2rem">${mLab(topMode(row.modalSplit))}</div><div class="card-sub">${year}</div></div>`;
   document.getElementById(tableId).innerHTML=modeStats.map(({m,share,ef,co2c})=>`
-    <tr><td class="name">${m}</td><td class="num">${share.toFixed(1)}%</td><td class="num">${co2c.toFixed(4)} kg</td><td class="num">${ef}</td>
+    <tr><td class="name">${mLab(m)}</td><td class="num">${share.toFixed(1)}%</td><td class="num">${co2c.toFixed(4)} kg</td><td class="num">${ef}</td>
     <td><span class="badge ${GREEN.includes(m)?'badge-green':FOSSIL.includes(m)?'badge-red':'badge-amber'}">${GREEN.includes(m)?'Green':FOSSIL.includes(m)?'Fossil':'Neutral'}</span></td>
     <td class="num ${co2c/totalCO2>.3?'bad':co2c/totalCO2>.15?'warn':'good'}">${totalCO2>0?(co2c/totalCO2*100).toFixed(1):0}%</td></tr>`).join('');
   destroyChart(co2Id);
+  const co2Opts=baseOpts();
+  co2Opts.scales.x.ticks.autoSkip=false;co2Opts.scales.x.ticks.maxRotation=0;co2Opts.scales.x.ticks.minRotation=0;
   charts[co2Id]=new Chart(document.getElementById('chart-'+co2Id),{type:'bar',
-    data:{labels:modes,datasets:[{data:modeStats.map(s=>+s.co2c.toFixed(4)),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}]},options:baseOpts()});
+    data:{labels:modes.map(m=>mLab(m)),datasets:[{data:modeStats.map(s=>+s.co2c.toFixed(4)),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}]},options:co2Opts});
   const row0=getRow(country,ALL_YEARS[0]);
   destroyChart(shiftId);
+  const shiftCC=getChartColors();
+  const shiftOpts=baseOpts(legendOpts());
+  shiftOpts.scales.x.ticks.autoSkip=false;shiftOpts.scales.x.ticks.maxRotation=0;shiftOpts.scales.x.ticks.minRotation=0;
   charts[shiftId]=new Chart(document.getElementById('chart-'+shiftId),{type:'bar',
-    data:{labels:modes,datasets:[
-      {label:String(ALL_YEARS[0]),data:modes.map(m=>row0?(row0.modalSplit[m]||0):0),backgroundColor:'rgba(255,255,255,.15)',borderWidth:0,borderRadius:4},
+    data:{labels:modes.map(m=>mLab(m)),datasets:[
+      {label:String(ALL_YEARS[0]),data:modes.map(m=>row0?(row0.modalSplit[m]||0):0),backgroundColor:document.documentElement.classList.contains('light-mode')?'rgba(0,0,0,.12)':'rgba(255,255,255,.15)',borderWidth:0,borderRadius:4},
       {label:String(year),data:modes.map(m=>row.modalSplit[m]||0),backgroundColor:modes.map(m=>MODE_COLORS[m]||'#888'),borderWidth:0,borderRadius:4}
-    ]},options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}})}});
+    ]},options:shiftOpts});
 }
 
 // ── COMPARE ───────────────────────────────────────────────────────────────────
@@ -883,6 +1098,7 @@ function renderCompare(){
   document.getElementById('compare-chart-title').textContent=`${label} (${year})`;
   const sorted=[...data].sort((a,b)=>fn(b)-fn(a)).slice(0,topN||9999);
   destroyChart('compare');
+  const cmpCC=getChartColors();
   charts['compare']=new Chart(document.getElementById('chart-compare'),{type:'bar',
     data:{labels:sorted.map(d=>d.country),datasets:[{data:sorted.map(d=>+fn(d).toFixed(3)),
       backgroundColor:sorted.map(d=>(CONTINENT_COLORS[d.continent]||{solid:'rgba(200,200,200,.6)'}).solid),
@@ -891,8 +1107,8 @@ function renderCompare(){
       legend:{display:false},
       tooltip:{callbacks:{afterLabel:ctx=>`${sorted[ctx.dataIndex].continent}`}}
     }),responsive:true,maintainAspectRatio:false,scales:{
-      x:{ticks:{color:'#616161',font:{family:'JetBrains Mono',size:8},maxRotation:60},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}}
+      x:{ticks:{color:cmpCC.tick,font:{family:'JetBrains Mono',size:10},autoSkip:false},grid:{color:cmpCC.grid},border:{color:cmpCC.border}},
+      y:{ticks:{color:cmpCC.tick,font:{family:'JetBrains Mono',size:9}},grid:{color:cmpCC.grid},border:{color:cmpCC.border}}
     }}});
   document.getElementById('compare-table').innerHTML=sorted.map((d,i)=>`
     <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
@@ -917,14 +1133,15 @@ function renderModal(){
     const wrap=document.getElementById('wrap-'+id);
     const h=Math.max(320,sorted.length*22);
     if(wrap){wrap.style.height=h+'px';}
+    const mCC=getChartColors();
     charts[id]=new Chart(el,{type:'bar',
       data:{labels:sorted.map(d=>d.country),datasets:[{
         data:sorted.map(d=>+valFn(d).toFixed(1)),
         backgroundColor:color,borderWidth:0,borderRadius:3,maxBarThickness:18}]},
       options:{...hBarOpts(),responsive:true,maintainAspectRatio:false,
         scales:{
-          x:{ticks:{color:'#525252',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.06)'}},
-          y:{ticks:{color:'#a3a3a3',font:{family:'JetBrains Mono',size:10},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'},border:{color:'rgba(255,255,255,.06)'}}
+          x:{ticks:{color:mCC.tick,font:{family:'JetBrains Mono',size:9}},grid:{color:mCC.grid},border:{color:mCC.border}},
+          y:{ticks:{color:mCC.tick,font:{family:'JetBrains Mono',size:10},maxRotation:0},grid:{color:mCC.grid},border:{color:mCC.border}}
         }}});
   };
   const top=mode=>[...data].sort((a,b)=>(b.modalSplit[mode]||0)-(a.modalSplit[mode]||0)).slice(0,topN);
@@ -944,41 +1161,58 @@ function renderAnimFrame(fi){
   const year=ALL_YEARS[animFrame],metric=document.getElementById('anim-metric').value,region=document.getElementById('anim-region').value;
   document.getElementById('anim-year-label').textContent=year;
   document.getElementById('anim-year-slider').value=animFrame;
-  const mf={co2:{fn:d=>d.co2,label:'CO₂'},green:{fn:d=>d.greenScore,label:'Green Score'},fossil:{fn:d=>d.fossilFuelShare,label:'Fossil %'},ev:{fn:d=>d.modalSplit['ElectricCar']||0,label:'EV Share'}};
+  const mf={co2:{fn:d=>d.co2,label:'CO₂'},green:{fn:d=>d.greenScore,label:'Green Score'},fossil:{fn:d=>d.fossilFuelShare,label:'Fossil %'},ev:{fn:d=>d.modalSplit['ElectricCar']||0,label:'Electric Vehicles Share'}};
   const{fn,label}=mf[metric];
   document.getElementById('anim-chart-title').textContent=`${label} — ${year}`;
   let data=RAW.filter(r=>r.year===year);
   if(region!=='ALL')data=data.filter(r=>r.continent===region);
   const sorted=[...data].sort((a,b)=>fn(b)-fn(a)).slice(0,30);
-  const cf=d=>metric==='co2'?(d.co2>5?'rgba(248,113,113,.8)':d.co2>3?'rgba(250,204,21,.8)':'rgba(74,222,128,.8)'):'rgba(255,255,255,.55)';
+  const cf=d=>{if(metric!=='co2')return 'rgba(255,255,255,.55)';const h=Math.max(0,140-((d.co2||0)*20));return `hsla(${h},80%,55%,0.85)`;};
   if(charts['anim']){
     charts['anim'].data.labels=sorted.map(d=>d.country);
     charts['anim'].data.datasets[0].data=sorted.map(d=>+fn(d).toFixed(3));
     charts['anim'].data.datasets[0].backgroundColor=sorted.map(cf);
+    if(charts['anim'].options.scales&&charts['anim'].options.scales.x){
+      charts['anim'].options.scales.x.ticks.autoSkip=false;
+      charts['anim'].options.scales.x.ticks.maxRotation=45;
+      charts['anim'].options.scales.x.ticks.minRotation=45;
+    }
     charts['anim'].update('active');
   }else{
+    const opts = baseOpts();
+    opts.scales.x.ticks.autoSkip = false; opts.scales.x.ticks.maxRotation = 45; opts.scales.x.ticks.minRotation = 45;
+    opts.animation = {duration: 350};
     charts['anim']=new Chart(document.getElementById('chart-anim'),{type:'bar',
       data:{labels:sorted.map(d=>d.country),datasets:[{data:sorted.map(d=>+fn(d).toFixed(3)),backgroundColor:sorted.map(cf),borderWidth:0,borderRadius:4}]},
-      options:{...baseOpts(),animation:{duration:350}}});
+      options:opts});
   }
 }
 
 function renderAnimDelta(){
-  const deltas=COUNTRIES.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
+  const euCountries=COUNTRIES.filter(c=>{const rows=RAW.filter(r=>r.country===c);return rows.length>0&&rows[0].continent==='Europe';});
+  const deltas=euCountries.map(c=>{const r0=getRow(c,2010),rN=getRow(c,latestYear());if(!r0||!rN)return null;return{country:c,delta:rN.co2-r0.co2,continent:r0.continent};}).filter(Boolean).sort((a,b)=>b.delta-a.delta);
   const combined=[...deltas.slice(0,15),...deltas.slice(-15).reverse()];
   destroyChart('anim-delta');
+  const deltaOpts=baseOpts();
+  deltaOpts.animation={duration:1200,easing:'easeOutQuart',delay:function(ctx){return ctx.type==='data'?ctx.dataIndex*40:0;}};
   charts['anim-delta']=new Chart(document.getElementById('chart-anim-delta'),{type:'bar',
     data:{labels:combined.map(d=>d.country),datasets:[{data:combined.map(d=>+d.delta.toFixed(3)),
-      backgroundColor:combined.map(d=>d.delta>0?'rgba(248,113,113,.75)':'rgba(74,222,128,.75)'),borderWidth:0,borderRadius:3}]},options:baseOpts()});
+      backgroundColor:combined.map(d=>(CONTINENT_COLORS[d.continent]||{solid:'rgba(74,222,128,.75)'}).solid),borderWidth:0,borderRadius:3}]},options:deltaOpts});
 }
 
 function renderAnimAvg(){
-  const avg=ALL_YEARS.map(y=>{const r=RAW.filter(x=>x.year===y);return r.reduce((s,x)=>s+x.co2,0)/r.length;});
+  const cc=getChartColors();
+  const avg=ALL_YEARS.map(y=>{const r=RAW.filter(x=>x.year===y&&x.continent==='Europe');return r.length?r.reduce((s,x)=>s+x.co2,0)/r.length:null;});
   destroyChart('anim-avg');
+  const avgOpts=baseOpts(legendOpts());
+  avgOpts.animation={duration:2000,easing:'easeInOutQuart',
+    x:{type:'number',easing:'linear',duration:1500,from:NaN,delay:function(ctx){if(ctx.type!=='data')return 0;return ctx.dataIndex*80;}},
+    y:{type:'number',easing:'easeOutQuart',duration:800,from:function(ctx){return ctx.chart.scales.y?ctx.chart.scales.y.getPixelForValue(100):0;},delay:function(ctx){if(ctx.type!=='data')return 0;return ctx.dataIndex*80;}}
+  };
   charts['anim-avg']=new Chart(document.getElementById('chart-anim-avg'),{type:'line',
-    data:{labels:ALL_YEARS,datasets:[{label:'Global avg CO₂',data:avg.map(v=>+v.toFixed(3)),
-      borderColor:'rgba(255,255,255,.7)',backgroundColor:'rgba(255,255,255,.04)',tension:.4,pointRadius:3,borderWidth:2,fill:true}]},
-    options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}})}});
+    data:{labels:ALL_YEARS,datasets:[{label:'EU avg CO₂',data:avg.map(v=>v!==null?+v.toFixed(3):null),
+      borderColor:cc.line,backgroundColor:cc.lineFill,tension:.4,pointRadius:3,pointBackgroundColor:cc.line,borderWidth:2,fill:true}]},
+    options:avgOpts});
 }
 
 function onAnimSlider(v){stopAnimation();renderAnimFrame(+v);}
@@ -990,28 +1224,37 @@ function startAnimation(){
 function stopAnimation(){animPlaying=false;clearInterval(animTimer);document.getElementById('anim-play-btn').textContent='▶ PLAY';document.getElementById('anim-play-btn').classList.remove('playing');}
 
 // ── CALCULATOR ────────────────────────────────────────────────────────────────
-function onCalcChange(){
-  const row=getRow(document.getElementById('calc-country').value,+document.getElementById('calc-year').value);if(!row)return;
-  document.getElementById('calc-pop').value=row.population;
-  const modes=MODE_ORDER.filter(m=>row.modalSplit[m]!==undefined);
-  document.getElementById('mode-inputs').innerHTML=modes.map(m=>{const share=row.modalSplit[m]||0,color=MODE_COLORS[m]||'#888';
-    return`<div class="mode-row"><div class="mode-label"><span class="mode-dot" style="background:${color}"></span>${m}</div>
-    <input type="range" min="0" max="100" step="0.5" value="${share.toFixed(1)}" data-mode="${m}" oninput="onSlider(this)" style="accent-color:${color}">
+function initCalculator(){
+  if(document.getElementById('mode-inputs').innerHTML !== '') return;
+  const defaultModes = {Car:40, Motorcycle:10, Bus:10, Rail:10, ElectricCar:10, Walking:10, Cycling:10};
+  const modes=MODE_ORDER;
+  document.getElementById('mode-inputs').innerHTML=modes.map(m=>{const share=defaultModes[m]||0,color=MODE_COLORS[m]||'#888';
+    return`<div class="mode-row"><div class="mode-label"><span class="mode-dot" style="background:${color}"></span>${mLab(m)}</div>
+    <input type="range" min="0" max="100" step="0.5" value="${share.toFixed(1)}" data-mode="${m}" oninput="onSlider(this)" style="accent-color:${color}; --thumb-color:${color};">
     <div class="mode-share-val" id="sv-${m}">${share.toFixed(1)}%</div></div>`;}).join('');
   updateShareTotal();updateDonut();
 }
-function onSlider(el){const sv=document.getElementById(`sv-${el.dataset.mode}`);if(sv)sv.textContent=(+el.value).toFixed(1)+'%';updateShareTotal();updateDonut();}
+function onSlider(el){
+  let sumOther=0; document.querySelectorAll('#mode-inputs input[type=range]').forEach(s=>{ if(s!==el) sumOther+= +s.value; });
+  if(sumOther + (+el.value) > 100) el.value = Math.max(0, 100 - sumOther).toFixed(1);
+  const sv=document.getElementById(`sv-${el.dataset.mode}`);if(sv)sv.textContent=(+el.value).toFixed(1)+'%';updateShareTotal();updateDonut();
+}
 function updateShareTotal(){let t=0;document.querySelectorAll('#mode-inputs input[type=range]').forEach(s=>t+=+s.value);document.getElementById('share-total').textContent=t.toFixed(1);document.getElementById('share-warn').style.display=Math.abs(t-100)>5?'inline':'none';}
 function getCalcModeData(){return[...document.querySelectorAll('#mode-inputs input[type=range]')].map(s=>({mode:s.dataset.mode,share:+s.value,ef:EMISSION_FACTORS[s.dataset.mode]||0}));}
-function updateDonut(){
+ function updateDonut(){
   const md=getCalcModeData().filter(m=>m.share>0);
   if(calcDonutChart){calcDonutChart.destroy();calcDonutChart=null;}
   calcDonutChart=new Chart(document.getElementById('chart-calc-donut'),{type:'doughnut',
-    data:{labels:md.map(m=>m.mode),datasets:[{data:md.map(m=>+m.share.toFixed(1)),backgroundColor:md.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]},
+    data:{labels:md.map(m=>mLab(m.mode)),datasets:[{data:md.map(m=>+m.share.toFixed(1)),backgroundColor:md.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]},
     options:{responsive:true,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed.toFixed(1)}%`}}},animation:{duration:250}}});
-  document.getElementById('calc-legend').innerHTML=md.map(m=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:11px;color:var(--text3)"><span style="width:7px;height:7px;border-radius:50%;background:${MODE_COLORS[m.mode]||'#888'};flex-shrink:0"></span>${m.mode} ${m.share.toFixed(1)}%</div>`).join('');
+  document.getElementById('calc-legend').innerHTML=md.map(m=>`<div style="display:flex;align-items:center;gap:.3rem;font-size:11px;color:var(--text3)"><span style="width:7px;height:7px;border-radius:50%;background:${MODE_COLORS[m.mode]||'#888'};flex-shrink:0"></span>${mLab(m.mode)} ${m.share.toFixed(1)}%</div>`).join('');
 }
 function runCalculation(){
+  let totShare=0; document.querySelectorAll('#mode-inputs input[type=range]').forEach(s=>totShare+=+s.value);
+  if(Math.abs(totShare-100)>0.2){
+    alert("Total modal distribution must equal exactly 100%. Currently it is " + totShare.toFixed(1) + "%. Please adjust the mode sliders first.");
+    return;
+  }
   const dist=+document.getElementById('calc-dist').value||12,tripsD=+document.getElementById('calc-trips').value||2,pop=+document.getElementById('calc-pop').value||1000000;
   const md=getCalcModeData(),GM=['Rail','ElectricCar','Walking','Cycling'],FM=['Car','Motorcycle'];
   let tot=0,gCO2=0,fCO2=0;
@@ -1025,20 +1268,75 @@ function runCalculation(){
   ].map(([l,v,u])=>`<div class="result-card"><div class="result-label">${l}</div><div class="result-val">${v}</div><div class="result-unit">${u}</div></div>`).join('');
   const nz=mr.filter(m=>m.share>0);
   const mkR=(id,type,data,opts)=>{destroyChart(id);charts[id]=new Chart(document.getElementById('chart-result-'+id),{type,...data,...opts});};
-  mkR('donut','doughnut',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.share.toFixed(1)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'60%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
-  mkR('bar','bar',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.co2Trip.toFixed(4)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
-  mkR('annual','bar',{data:{labels:nz.map(m=>m.mode),datasets:[{data:nz.map(m=>+m.annual.toFixed(2)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
+  mkR('donut','doughnut',{data:{labels:nz.map(m=>mLab(m.mode)),datasets:[{data:nz.map(m=>+m.share.toFixed(1)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'60%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
+  mkR('bar','bar',{data:{labels:nz.map(m=>mLab(m.mode)),datasets:[{data:nz.map(m=>+m.co2Trip.toFixed(4)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
+  mkR('annual','bar',{data:{labels:nz.map(m=>mLab(m.mode)),datasets:[{data:nz.map(m=>+m.annual.toFixed(2)),backgroundColor:nz.map(m=>MODE_COLORS[m.mode]||'#888'),borderWidth:0,borderRadius:4}]}},{options:baseOpts()});
   const gT=nz.filter(m=>GM.includes(m.mode)).reduce((s,m)=>s+m.daily,0),fT=nz.filter(m=>FM.includes(m.mode)).reduce((s,m)=>s+m.daily,0);
   mkR('split','doughnut',{data:{labels:['Green','Fossil','Other'],datasets:[{data:[+gT.toFixed(4),+fT.toFixed(4),+(tot-gT-fT).toFixed(4)],backgroundColor:['rgba(74,222,128,.8)','rgba(248,113,113,.8)','rgba(250,204,21,.7)'],borderWidth:1,borderColor:'#141414'}]}},{options:{responsive:true,cutout:'55%',plugins:{legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10}}}}});
   document.getElementById('result-table').innerHTML=[
-    ['Country',document.getElementById('calc-country').value,''],['Year',document.getElementById('calc-year').value,''],
+    ['Place',document.getElementById('calc-place').value,''],['Year',document.getElementById('calc-year').value,''],
     ['Distance',`${dist} km`,'per trip'],['Trips/Day',tripsD,''],['Population',pop.toLocaleString(),''],
     ['Daily CO₂',`${tot.toFixed(4)} kg`,'per person'],['Weekly CO₂',`${wk.toFixed(3)} kg`,''],
     ['Annual CO₂',`${ann.toFixed(2)} kg`,'per person'],['City Aggregate',`${city.toFixed(3)} Mt`,''],
-    ...nz.map(m=>[m.mode,`${m.co2Trip.toFixed(4)} kg/trip`,`ef=${m.ef}`])
+    ...nz.map(m=>[mLab(m.mode),`${m.co2Trip.toFixed(4)} kg/trip`,`ef=${m.ef}`])
   ].map(([k,v,n])=>`<tr><td>${k}</td><td class="num">${v}</td><td style="font-size:10px;color:var(--text4)">${n}</td></tr>`).join('');
   document.getElementById('calc-results').style.display='block';
   document.getElementById('calc-results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function exportCalcCSV() {
+  const place = document.getElementById('calc-place').value;
+  const year = document.getElementById('calc-year').value;
+  const dist = document.getElementById('calc-dist').value || 12;
+  const trips = document.getElementById('calc-trips').value || 2;
+  const pop = document.getElementById('calc-pop').value || 1000000;
+  
+  const md = [...document.querySelectorAll('#mode-inputs input[type=range]')].map(s => ({
+    mode: s.dataset.mode, share: +s.value, ef: EMISSION_FACTORS[s.dataset.mode] || 0
+  }));
+
+  const rows = [];
+  rows.push(['city','country','continent','population','year','transport_mode','modal_share_pct','avg_trip_km','daily_trips','emission_factor_co2_kg_per_pkm','emission_factor_nox_kg_per_pkm','emission_factor_pm10_kg_per_pkm','energy_intensity_MJ_per_pkm'].join(','));
+
+  const modeMap = {
+    'Car':'Car', 'Motorcycle':'Motorcycle', 'Bus':'Bus', 'Rail':'Rail',
+    'ElectricCar':'ElectricCar', 'Walking':'Walk', 'Cycling':'Bicycle'
+  };
+
+  md.forEach(m => {
+    if (m.share > 0) {
+      rows.push([
+        `"${place.replace(/"/g, '""')}"`,
+        `""`,
+        `""`,
+        pop,
+        year,
+        `"${modeMap[m.mode] || m.mode}"`,
+        m.share.toFixed(1),
+        dist,
+        trips,
+        m.ef,
+        0, 0, 0
+      ].join(','));
+    }
+  });
+
+  const link = document.createElement("a");
+  link.setAttribute("href", "data:text/csv;charset=utf-8," + encodeURIComponent(rows.join('\n')));
+  link.setAttribute("download", `emission_data_${place.replace(/\\s+/g,'_')}.csv`);
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+function exportCalcPDF() {
+  const w = window.open('', '', 'height=600,width=800');
+  const place = document.getElementById('calc-place').value;
+  w.document.write('<html><head><title>Emission Results - '+place+'</title>');
+  w.document.write('<style>body{font-family:sans-serif;padding:20px;color:#222}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f2f2f2}</style>');
+  w.document.write('<'+'/head><body><h2>Emission Calculator Results: '+place+'<'+'/h2>');
+  w.document.write('<table><thead><tr><th>Metric<'+'/th><th>Value<'+'/th><th>Notes<'+'/th><'+'/tr><'+'/thead><tbody>');
+  w.document.write(document.getElementById('result-table').innerHTML);
+  w.document.write('<'+'/tbody><'+'/table><'+'/body><'+'/html>');
+  w.document.close(); w.focus();
+  setTimeout(()=>{ w.print(); w.close(); }, 250);
 }
 
 // ── IMPORT DATASET ────────────────────────────────────────────────────────────
@@ -1067,7 +1365,9 @@ function processImportFile(file){
   reader.readAsText(file);
 }
 
+let _lastImportData=null;
 function renderImportDashboard(iRaw,iCountries,iYears){
+  _lastImportData={raw:iRaw,countries:iCountries,years:iYears};
   const dash=document.getElementById('mini-dashboard');
   dash.style.display='block';
 
@@ -1083,12 +1383,28 @@ function renderImportDashboard(iRaw,iCountries,iYears){
     <div class="card"><div class="card-label">Records</div><div class="card-value">${iRaw.length}</div><div class="card-sub">total data points</div></div>`;
 
   const iConts=[...new Set(iRaw.map(r=>r.continent))].sort();
-  const iContD=iConts.map(c=>{const r=latI.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length};});
-  const co2S=[...iContD].sort((a,b)=>b.avgCO2-a.avgCO2);
-  destroyChart('imp-co2');
-  charts['imp-co2']=new Chart(document.getElementById('chart-imp-co2'),{type:'bar',
-    data:{labels:co2S.map(d=>d.c),datasets:[{data:co2S.map(d=>+d.avgCO2.toFixed(3)),
-      backgroundColor:co2S.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),borderWidth:0,borderRadius:5}]},options:baseOpts()});
+  const iContD=iConts.map(c=>{const r=latI.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length,rows:r};});
+
+  // Modal Share by Continent — stacked bar
+  destroyChart('imp-modal-cont');
+  const contLabels=iConts;
+  const modalModes=MODE_ORDER;
+  const modalDatasets=modalModes.map(mode=>({
+    label:mLab(mode),
+    data:contLabels.map(c=>{
+      const rows=latI.filter(d=>d.continent===c);
+      if(!rows.length)return 0;
+      return +(rows.reduce((s,d)=>s+(d.modalSplit[mode]||0),0)/rows.length).toFixed(1);
+    }),
+    backgroundColor:MODE_COLORS[mode]||'#888',
+    borderWidth:0,borderRadius:2
+  }));
+  const modalContOpts=baseOpts(legendOpts({padding:8}));
+  modalContOpts.scales.x.stacked=true;
+  modalContOpts.scales.y.stacked=true;
+  modalContOpts.plugins.legend.display=true;
+  charts['imp-modal-cont']=new Chart(document.getElementById('chart-imp-modal-cont'),{type:'bar',
+    data:{labels:contLabels,datasets:modalDatasets},options:modalContOpts});
 
   const gS=[...iContD].sort((a,b)=>b.avgGreen-a.avgGreen);
   destroyChart('imp-green');
@@ -1096,12 +1412,13 @@ function renderImportDashboard(iRaw,iCountries,iYears){
     data:{labels:gS.map(d=>d.c),datasets:[{data:gS.map(d=>+d.avgGreen.toFixed(1)),
       backgroundColor:gS.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),borderWidth:0,borderRadius:5}]},options:baseOpts()});
 
+  const impCC=getChartColors();
   destroyChart('imp-trend');
   charts['imp-trend']=new Chart(document.getElementById('chart-imp-trend'),{type:'line',
     data:{labels:iYears,datasets:iConts.map(c=>({
       label:c,data:iYears.map(y=>{const r=iRaw.filter(x=>x.continent===c&&x.year===y);return r.length?+(r.reduce((s,x)=>s+x.co2,0)/r.length).toFixed(3):null;}),
       borderColor:(CONTINENT_COLORS[c]||{line:'#aaa'}).line,backgroundColor:'transparent',tension:.4,pointRadius:2,borderWidth:2}))},
-    options:{...baseOpts({legend:{display:true,labels:{color:'#a3a3a3',font:{family:'Inter',size:10},boxWidth:10,padding:12}}})}});
+    options:{...baseOpts(legendOpts({padding:12}))}});
 
   const top20=[...latI].sort((a,b)=>b.modalSplit['Car']-a.modalSplit['Car']).slice(0,20);
   destroyChart('imp-car');
@@ -1117,7 +1434,7 @@ function renderImportDashboard(iRaw,iCountries,iYears){
     <tr><td class="num">${i+1}</td><td class="name">${d.country}</td><td>${d.continent}</td>
     <td class="num ${d.co2>5?'bad':d.co2>3?'warn':'good'}">${d.co2.toFixed(3)}</td>
     <td class="num good">${d.greenScore.toFixed(1)}%</td>
-    <td><span class="badge badge-white">${topMode(d.modalSplit)}</span></td></tr>`).join('');
+    <td><span class="badge badge-white">${mLab(topMode(d.modalSplit))}</span></td></tr>`).join('');
 }
 
 // ── GLOBAL TREND ─────────────────────────────────────────────────────────────
@@ -1127,6 +1444,7 @@ function renderGlobalTrend(){
   const conts=allContinents();
   const active=chosen==='ALL'?conts:[chosen];
   destroyChart('trend');
+  const tCC=getChartColors();
   charts['trend']=new Chart(document.getElementById('chart-trend'),{type:'line',
     data:{labels:ALL_YEARS,datasets:active.map(c=>({
       label:c,
@@ -1135,8 +1453,184 @@ function renderGlobalTrend(){
       backgroundColor:chosen==='ALL'?'transparent':(CONTINENT_COLORS[c]||{line:'#aaa'}).line.replace(')',',0.08)').replace('rgb','rgba'),
       tension:.4,pointRadius:3,borderWidth:2,pointHoverRadius:5,fill:chosen!=='ALL'
     }))},
-    options:{...baseOpts({legend:{display:true,position:'top',labels:{color:'#a3a3a3',font:{family:'Inter',size:11},boxWidth:12,padding:16,usePointStyle:true}}}),
+    options:{...baseOpts({legend:{display:true,position:'top',labels:{color:tCC.legend,font:{family:'Inter',size:11},boxWidth:12,padding:16,usePointStyle:true}}}),
       layout:{padding:{top:8}}}});
+}
+
+// ── AI PREDICTION & CHAT ───────────────────────────────────────────────────────
+function linearRegression(pts){
+  let n=pts.length,sx=0,sy=0,sxy=0,sxx=0;
+  pts.forEach(({x,y})=>{sx+=x;sy+=y;sxy+=x*y;sxx+=x*x;});
+  const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx),intercept=(sy-slope*sx)/n;
+  return{slope,intercept,predict:x=>slope*x+intercept};
+}
+
+function renderAIPrediction(){
+  const country=document.getElementById('ai-country')?.value;
+  const metric=document.getElementById('ai-metric')?.value;
+  if(!country||!metric)return;
+
+  // Extract historical data
+  const data=ALL_YEARS.map(y=>{
+    const row=RAW.find(r=>r.country===country&&r.year===y);
+    if(!row)return null;
+    return metric==='co2'?row.co2:metric==='green'?row.greenScore:row.motorisation;
+  });
+
+  const pts=[];
+  data.forEach((val,i)=>{if(val!==null)pts.push({x:ALL_YEARS[i],y:val});});
+  if(pts.length<3)return;
+
+  const model=linearRegression(pts);
+  const futureYears=[2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
+  const allY=[...ALL_YEARS,...futureYears];
+
+  const historical=[],forecast=[];
+  allY.forEach(y=>{
+    const isFuture=y>ALL_YEARS[ALL_YEARS.length-1];
+    if(isFuture){
+      const py=model.predict(y);
+      historical.push(null);
+      forecast.push(+Math.max(0,py).toFixed(2));
+    } else {
+      const existing=pts.find(p=>p.x===y);
+      const val=existing?existing.y:null;
+      historical.push(val!==null?+val.toFixed(2):null);
+      // overlapping point to connect lines
+      forecast.push(y===ALL_YEARS[ALL_YEARS.length-1] && existing ? +existing.y.toFixed(2) : null);
+    }
+  });
+
+  const cc=getChartColors();
+  const cColor=CITY_PALETTE[COUNTRIES.indexOf(country)%CITY_PALETTE.length]||'#fff';
+  destroyChart('ai-predict');
+  
+  charts['ai-predict']=new Chart(document.getElementById('chart-ai-predict'),{
+    type:'line',
+    data:{
+      labels:allY,
+      datasets:[
+        {label:'Historical',data:historical,borderColor:cColor,backgroundColor:cColor,tension:0.3,pointRadius:3,borderWidth:2,fill:true},
+        {label:'Forecast (AI Linear)',data:forecast,borderColor:'#60a5fa',backgroundColor:'transparent',borderDash:[5,5],tension:0.3,pointRadius:0,borderWidth:2}
+      ]
+    },
+    options:{...baseOpts({legend:{display:true,labels:{color:cc.legend,font:{family:'Inter',size:11},usePointStyle:true}}}),layout:{padding:{top:8}}}
+  });
+
+  // KPI cards
+  const y2030=model.predict(2030);
+  const cur=pts[pts.length-1].y;
+  const changePct=((y2030-cur)/cur)*100;
+  let unit=metric==='co2'?'kg/p/day':metric==='green'?'% green score':'% cars';
+  
+  document.getElementById('ai-predict-kpis').innerHTML=`
+    <div class="result-card"><div class="result-label">Current (${pts[pts.length-1].x})</div><div class="result-val">${cur.toFixed(2)}</div><div class="result-unit">${unit}</div></div>
+    <div class="result-card"><div class="result-label">Predicted 2030</div><div class="result-val" style="color:#60a5fa">${Math.max(0,y2030).toFixed(2)}</div><div class="result-unit">${unit}</div></div>
+    <div class="result-card"><div class="result-label">Projected Shift</div><div class="result-val ${changePct>0?(metric==='co2'?'bad':'good'):(metric==='co2'?'good':'bad')}">${changePct>0?'+':''}${changePct.toFixed(1)}%</div><div class="result-unit">by 2030</div></div>
+  `;
+}
+
+let groqApiKey=localStorage.getItem('ts_groq_key')||'';
+function saveAIKey(){
+  const k=document.getElementById('ai-api-key').value.trim();
+  if(k){groqApiKey=k;localStorage.setItem('ts_groq_key',k);}
+  document.getElementById('ai-key-modal').style.display='none';
+  addChatMessage('ai',"API Key saved! How can I assist you with your transport data?");
+}
+
+function addChatMessage(role,text){
+  const box=document.getElementById('ai-chat-box');
+  const div=document.createElement('div');
+  div.className=`chat-msg ${role}`;
+  const avatar=role==='user'?'U':'AI';
+  
+  // Format simple markdown into HTML
+  let formatted=text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  formatted=formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  formatted=formatted.replace(/\n/g, '<br>');
+
+  div.innerHTML=`<div class="chat-avatar">${avatar}</div><div class="chat-bubble">${formatted}</div>`;
+  box.appendChild(div);
+  box.scrollTo({top:box.scrollHeight,behavior:'smooth'});
+}
+
+function getSystemContext(){
+  const ly=latestYear();
+  const d=RAW.filter(r=>r.year===ly);
+  const avgC=(d.reduce((s,r)=>s+r.co2,0)/d.length).toFixed(2);
+  const avgG=(d.reduce((s,r)=>s+r.greenScore,0)/d.length).toFixed(1);
+  
+  // Create a compressed payload of the data for the AI to read
+  const payload=d.map(r=>`${r.country}(${r.continent}):${r.co2.toFixed(2)}kg,${r.greenScore.toFixed(0)}%`).join(' | ');
+
+  return `You are the TransportSense AI Assistant. You MUST answer based ONLY on the provided dataset context. DO NOT hallucinate external data.
+
+Context Summary (${ly}):
+- Total Countries: ${COUNTRIES.length}
+- Global Avg CO2/capita/day: ${avgC} kg
+- Global Avg Green Transport Score: ${avgG}%
+
+Actual Dataset for ${ly} (Format — Country(Continent):CO2_per_capita_per_day,Green_Score_percentage):
+${payload}
+
+Rules:
+1. When asked for the "most polluted", find the country with the HIGHEST CO2. 
+2. When asked for "greenest", find the country with the HIGHEST Green Score.
+3. If a user asks about a city or country not in the list, tell them it's not in the dataset.`;
+}
+
+async function handleAIChat(e){
+  e.preventDefault();
+  if(!groqApiKey){
+    document.getElementById('ai-key-modal').style.display='flex';
+    return;
+  }
+  const input=document.getElementById('ai-chat-input');
+  const query=input.value.trim();
+  if(!query)return;
+
+  addChatMessage('user',query);
+  input.value='';
+
+  // Add typing indicator
+  const box=document.getElementById('ai-chat-box');
+  const typing=document.createElement('div');
+  typing.className='chat-msg ai typing-indicator';
+  typing.innerHTML='<div class="chat-avatar">AI</div><div class="chat-bubble"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
+  box.appendChild(typing);
+  box.scrollTo({top:box.scrollHeight,behavior:'smooth'});
+
+  try{
+    const context=getSystemContext();
+    const res=await fetch(`https://api.groq.com/openai/v1/chat/completions`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${groqApiKey}`
+      },
+      body:JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          {role: 'system', content: `System info: ${context}\n\nAnswer the user briefly and clearly.`},
+          {role: 'user', content: query}
+        ]
+      })
+    });
+    
+    typing.remove();
+    const data=await res.json();
+    
+    if(data.error){
+      addChatMessage('ai',`API Error: ${data.error.message}`);
+    }else if(data.choices&&data.choices.length>0){
+      addChatMessage('ai',data.choices[0].message.content);
+    }else{
+      addChatMessage('ai',"I couldn't generate a response. Please try again.");
+    }
+  }catch(err){
+    typing.remove();
+    addChatMessage('ai',`Error connecting to AI: ${err.message}`);
+  }
 }
 
 boot();
