@@ -2,52 +2,51 @@
 
 module Main where
 
-import Web.Scotty
+import Web.Scotty (scottyOpts, get, file, literal, setHeader, raw, Options(..))
 import qualified Data.ByteString.Lazy as BL
-import Data.List (intercalate, isSuffixOf)
+import Data.List (isSuffixOf, intercalate)
 import Data.Char (isSpace)
 import Control.Monad.IO.Class (liftIO)
 import System.Environment (lookupEnv)
 import System.Directory (listDirectory)
+import Network.Wai.Handler.Warp (setHost, setPort, defaultSettings)
 import Text.Read (readMaybe)
-import qualified Data.Text.Lazy as TL
+import Data.String (fromString)
 
 main :: IO ()
 main = do
   portEnv <- lookupEnv "PORT"
   let port = maybe 3000 id (portEnv >>= readMaybe)
-  putStrLn ("Starting Scotty server on port " ++ show port)
+  putStrLn ("Starting server on port " ++ show port)
 
-  -- Get all JSON files in static/
   allFiles <- listDirectory "static"
   let jsonFiles = filter (".json" `isSuffixOf`) allFiles
+  putStrLn ("Serving JSON files: " ++ show jsonFiles)
 
-  putStrLn ("Found JSON files: " ++ show jsonFiles)
+  let opts = Options
+        { verbose  = 0
+        , settings = setPort port $ setHost (fromString "0.0.0.0") defaultSettings
+        }
 
-  scotty port $ do
+  scottyOpts opts $ do
 
-    -- Login page
     get "/" $
       file "static/index.html"
 
     get "/index.html" $
       file "static/index.html"
 
-    -- Dashboard
     get "/dashboard.html" $
       file "static/dashboard.html"
 
-    -- Dynamically serve each JSON file found in static/
-    mapM_ (\f -> do
-      let route = TL.pack ("/" ++ f)
-      get (literal (TL.unpack route)) $ do
+    mapM_ (\f ->
+      get (literal ("/" ++ f)) $ do
         jsonData <- liftIO $ BL.readFile ("static/" ++ f)
         setHeader "Content-Type" "application/json; charset=utf-8"
         setHeader "Access-Control-Allow-Origin" "*"
         raw jsonData
       ) jsonFiles
 
-    -- Keep these aliases too
     get "/analysis" $ do
       jsonData <- liftIO $ BL.readFile "static/analysis.json"
       setHeader "Content-Type" "application/json; charset=utf-8"
@@ -61,6 +60,7 @@ main = do
       raw jsonData
 
 
+-- CSV to JSON (future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content
