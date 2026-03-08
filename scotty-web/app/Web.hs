@@ -3,29 +3,36 @@
 module Main where
 
 import Web.Scotty
-import Web.Scotty.Trans (Options(..), scottyOpts)
-import Network.Wai.Handler.Warp (setHost, setPort, defaultSettings)
-
 import qualified Data.ByteString.Lazy as BL
 import Data.List (intercalate, isSuffixOf)
 import Data.Char (isSpace)
 import Control.Monad.IO.Class (liftIO)
 import System.Environment (lookupEnv)
 import System.Directory (listDirectory)
+import Network.Wai.Handler.Warp (setHost, setPort, defaultSettings)
+import Network.Wai (Application)
+import Web.Scotty.Trans (scottyOptsT, Options(..))
+import Data.String (fromString)
 import Text.Read (readMaybe)
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.Text.Lazy as TL
 
 main :: IO ()
 main = do
   portEnv <- lookupEnv "PORT"
   let port = maybe 3000 id (portEnv >>= readMaybe)
-
-  putStrLn ("Starting Scotty server on port " ++ show port)
+  putStrLn ("Starting server on port " ++ show port)
 
   allFiles <- listDirectory "static"
   let jsonFiles = filter (".json" `isSuffixOf`) allFiles
   putStrLn ("Serving JSON files: " ++ show jsonFiles)
 
-  scottyOpts (Options 0 (setPort port $ setHost "0.0.0.0" defaultSettings)) $ do
+  let opts = Options
+        { verbose = 0
+        , settings = setPort port $ setHost "0.0.0.0" defaultSettings
+        }
+
+  scottyOpts opts $ do
 
     get "/" $
       file "static/index.html"
@@ -36,7 +43,6 @@ main = do
     get "/dashboard.html" $
       file "static/dashboard.html"
 
-    -- Serve every JSON file inside static/
     mapM_ (\f ->
       get (literal ("/" ++ f)) $ do
         jsonData <- liftIO $ BL.readFile ("static/" ++ f)
@@ -45,7 +51,6 @@ main = do
         raw jsonData
       ) jsonFiles
 
-    -- API aliases
     get "/analysis" $ do
       jsonData <- liftIO $ BL.readFile "static/analysis.json"
       setHeader "Content-Type" "application/json; charset=utf-8"
@@ -59,6 +64,7 @@ main = do
       raw jsonData
 
 
+-- CSV to JSON (future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content

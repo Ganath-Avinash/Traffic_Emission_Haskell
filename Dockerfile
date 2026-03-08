@@ -1,4 +1,4 @@
-# Stage 1 — build
+# Stage 1: Build
 FROM fpco/stack-build:lts AS builder
 
 WORKDIR /build
@@ -8,13 +8,12 @@ WORKDIR /build/scotty-web
 RUN stack setup
 RUN stack build --copy-bins
 
-# Stage 2 — runtime
+# Stage 2: Runtime
 FROM debian:bookworm-slim
 
-WORKDIR /app/scotty-web
-
+WORKDIR /app
 COPY --from=builder /root/.local/bin/scotty-web-exe .
-COPY scotty-web/static ./static
+COPY --from=builder /build/scotty-web/static ./static
 
 EXPOSE 3000
 
