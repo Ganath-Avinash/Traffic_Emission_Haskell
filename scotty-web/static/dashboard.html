@@ -649,8 +649,8 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
           <div class="mini-section-title">📊 Imported — Global Stats</div>
           <div class="cards cards-4" id="imp-kpis"></div>
           <div class="chart-grid chart-grid-2">
-            <div class="chart-box"><div class="chart-title">CO₂ by Continent</div><canvas id="chart-imp-co2" height="200"></canvas></div>
-            <div class="chart-box"><div class="chart-title">Green Score by Continent</div><canvas id="chart-imp-green" height="200"></canvas></div>
+            <div class="chart-box"><div class="chart-title">Modal Share by Continent</div><div class="chart-sub">Average transport mode distribution per continent</div><canvas id="chart-imp-modal-cont" height="200"></canvas></div>
+            <div class="chart-box"><div class="chart-title">Green Score by Continent</div><div class="chart-sub">Average Rail + EV + Cycling + Walking share %</div><canvas id="chart-imp-green" height="200"></canvas></div>
           </div>
         </div>
         <div class="mini-section">
@@ -781,12 +781,16 @@ function toggleTheme(cb){
     if(activePage){
       const pid=activePage.id.replace('page-','');
       // Destroy all charts and re-render the active page
-      Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k];});
-      if(calcDonutChart){calcDonutChart.destroy();calcDonutChart=null;}
+      Object.keys(charts).forEach(k=>{try{charts[k].destroy();}catch(e){}delete charts[k];});
+      if(calcDonutChart){try{calcDonutChart.destroy();}catch(e){}calcDonutChart=null;}
       dispatchPage(pid);
       // Also re-render the time animation side charts if on that page
       if(pid==='timeseries'){renderAnimDelta();renderAnimAvg();}
       if(pid==='global'){renderGlobalTrend();}
+      // Re-render import dashboard charts if data is loaded and visible
+      if(pid==='import' && _lastImportData){
+        renderImportDashboard(_lastImportData.raw, _lastImportData.countries, _lastImportData.years);
+      }
     }
   },50);
 }
@@ -1366,7 +1370,9 @@ function processImportFile(file){
   reader.readAsText(file);
 }
 
+let _lastImportData=null;
 function renderImportDashboard(iRaw,iCountries,iYears){
+  _lastImportData={raw:iRaw,countries:iCountries,years:iYears};
   const dash=document.getElementById('mini-dashboard');
   dash.style.display='block';
 
@@ -1382,12 +1388,28 @@ function renderImportDashboard(iRaw,iCountries,iYears){
     <div class="card"><div class="card-label">Records</div><div class="card-value">${iRaw.length}</div><div class="card-sub">total data points</div></div>`;
 
   const iConts=[...new Set(iRaw.map(r=>r.continent))].sort();
-  const iContD=iConts.map(c=>{const r=latI.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length};});
-  const co2S=[...iContD].sort((a,b)=>b.avgCO2-a.avgCO2);
-  destroyChart('imp-co2');
-  charts['imp-co2']=new Chart(document.getElementById('chart-imp-co2'),{type:'bar',
-    data:{labels:co2S.map(d=>d.c),datasets:[{data:co2S.map(d=>+d.avgCO2.toFixed(3)),
-      backgroundColor:co2S.map(d=>(CONTINENT_COLORS[d.c]||{solid:'rgba(200,200,200,.6)'}).solid),borderWidth:0,borderRadius:5}]},options:baseOpts()});
+  const iContD=iConts.map(c=>{const r=latI.filter(d=>d.continent===c);return{c,avgCO2:r.reduce((s,d)=>s+d.co2,0)/r.length,avgGreen:r.reduce((s,d)=>s+d.greenScore,0)/r.length,rows:r};});
+
+  // Modal Share by Continent — stacked bar
+  destroyChart('imp-modal-cont');
+  const contLabels=iConts;
+  const modalModes=MODE_ORDER;
+  const modalDatasets=modalModes.map(mode=>({
+    label:mLab(mode),
+    data:contLabels.map(c=>{
+      const rows=latI.filter(d=>d.continent===c);
+      if(!rows.length)return 0;
+      return +(rows.reduce((s,d)=>s+(d.modalSplit[mode]||0),0)/rows.length).toFixed(1);
+    }),
+    backgroundColor:MODE_COLORS[mode]||'#888',
+    borderWidth:0,borderRadius:2
+  }));
+  const modalContOpts=baseOpts(legendOpts({padding:8}));
+  modalContOpts.scales.x.stacked=true;
+  modalContOpts.scales.y.stacked=true;
+  modalContOpts.plugins.legend.display=true;
+  charts['imp-modal-cont']=new Chart(document.getElementById('chart-imp-modal-cont'),{type:'bar',
+    data:{labels:contLabels,datasets:modalDatasets},options:modalContOpts});
 
   const gS=[...iContD].sort((a,b)=>b.avgGreen-a.avgGreen);
   destroyChart('imp-green');
