@@ -8,8 +8,8 @@ import Data.List (intercalate, isSuffixOf)
 import Data.Char (isSpace)
 import Control.Monad.IO.Class (liftIO)
 import System.Environment (lookupEnv)
+import System.Directory (listDirectory)
 import Text.Read (readMaybe)
-import qualified Data.Text as T
 
 main :: IO ()
 main = do
@@ -17,30 +17,31 @@ main = do
   let port = maybe 3000 id (portEnv >>= readMaybe)
   putStrLn ("Starting Scotty server on port " ++ show port)
 
+  allFiles <- listDirectory "static"
+  let jsonFiles = filter (".json" `isSuffixOf`) allFiles
+  putStrLn ("Serving JSON files: " ++ show jsonFiles)
+
   scotty port $ do
 
-    -- Login page
     get "/" $
       file "static/index.html"
 
     get "/index.html" $
       file "static/index.html"
 
-    -- Dashboard
     get "/dashboard.html" $
       file "static/dashboard.html"
 
-    -- FIXED: Dynamic JSON routes using lazy regex matching
-    -- This matches any route like /analysis.json, /emissions_Africa.json, etc.
-    get (regex "^/(.+\\.json)$") $ do
-      filename <- param "0"
-      let filepath = "static/" ++ T.unpack filename
-      jsonData <- liftIO $ BL.readFile filepath
-      setHeader "Content-Type" "application/json; charset=utf-8"
-      setHeader "Access-Control-Allow-Origin" "*"
-      raw jsonData
+    -- Serve every .json file found in static/
+    mapM_ (\f ->
+      get (literal ("/" ++ f)) $ do
+        jsonData <- liftIO $ BL.readFile ("static/" ++ f)
+        setHeader "Content-Type" "application/json; charset=utf-8"
+        setHeader "Access-Control-Allow-Origin" "*"
+        raw jsonData
+      ) jsonFiles
 
-    -- Keep these aliases for backward compatibility
+    -- Aliases
     get "/analysis" $ do
       jsonData <- liftIO $ BL.readFile "static/analysis.json"
       setHeader "Content-Type" "application/json; charset=utf-8"
@@ -54,21 +55,15 @@ main = do
       raw jsonData
 
 
--- CSV → JSON (future use)
-
+-- CSV to JSON (future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content
-      header   = case ls of
-                   (h:_) -> splitOn ',' h
-                   []    -> []
-      dataRows = case ls of
-                   (_:rest) -> rest
-                   []       -> []
+      header   = case ls of { (h:_) -> splitOn ',' h; [] -> [] }
+      dataRows = case ls of { (_:rest) -> rest; [] -> [] }
       parsed   = map (rowToJson header . splitOn ',') dataRows
       valid    = filter (not . null) parsed
   in "[" ++ intercalate ",\n" valid ++ "]"
-
 
 rowToJson :: [String] -> [String] -> String
 rowToJson header vals
@@ -78,19 +73,16 @@ rowToJson header vals
           fields = map (\(k,v) -> jsonField k v) pairs
       in "{" ++ intercalate ", " fields ++ "}"
 
-
 jsonField :: String -> String -> String
 jsonField key val =
   let k = "\"" ++ trim key ++ "\""
       v = encodeVal (trim val)
   in k ++ ": " ++ v
 
-
 encodeVal :: String -> String
 encodeVal s
   | isNumeric s = s
   | otherwise   = "\"" ++ escapeJson s ++ "\""
-
 
 isNumeric :: String -> Bool
 isNumeric "" = False
@@ -99,7 +91,6 @@ isNumeric s =
     [(_, "")] -> True
     _         -> False
 
-
 escapeJson :: String -> String
 escapeJson = concatMap escape
   where
@@ -107,10 +98,8 @@ escapeJson = concatMap escape
     escape '\\' = "\\\\"
     escape c    = [c]
 
-
 trim :: String -> String
 trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
-
 
 splitOn :: Char -> String -> [String]
 splitOn _ "" = [""]
