@@ -61,7 +61,6 @@ main = do
       raw jsonData
 
 
--- CSV → JSON (future use)
 csvToJson :: String -> String
 csvToJson content =
   let ls       = lines content
