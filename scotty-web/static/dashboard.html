@@ -20,8 +20,14 @@ const fbApp = initializeApp({
 });
 const fbAuth = getAuth(fbApp);
 onAuthStateChanged(fbAuth, user => {
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
+  // User is authenticated — show the page
+  document.body.style.visibility = 'visible';
   const el = document.getElementById('user-greeting');
-  if (el && user) {
+  if (el) {
     const name = user.displayName || user.email || 'User';
     el.textContent = 'Hi, ' + name;
   }
@@ -58,7 +64,7 @@ html.light-mode{
 html.light-mode .hamburger{background:rgba(255,255,255,.95);border-color:rgba(0,0,0,.15);box-shadow:0 2px 12px rgba(0,0,0,.1)}
 html.light-mode .hamburger span{background:#111}
 html{font-size:14px}
-body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh}
+body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh;visibility:hidden}
 body::before{content:'';position:fixed;inset:0;background:
   radial-gradient(ellipse 70% 60% at 15% 0%,rgba(255,255,255,.025) 0%,transparent 55%),
   radial-gradient(ellipse 50% 40% at 85% 100%,rgba(255,255,255,.018) 0%,transparent 55%);
@@ -95,7 +101,7 @@ body::before{content:'';position:fixed;inset:0;background:
 .nav-item:hover{background:var(--g2);color:var(--text);border-left-color:var(--border3)}
 .nav-item.active{background:var(--glass3);color:var(--text);border-left-color:var(--text)}
 .nav-dot{width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.6}
-.status-bar{padding:.75rem 1.5rem;border-top:1px solid var(--border);font-size:10px;color:var(--text4);font-family:'JetBrains Mono'}
+.status-bar{padding:.75rem 1.5rem;border-top:1px solid var(--border);font-size:10px;color:var(--text4);font-family:'JetBrains Mono';display:flex;align-items:center}
 .status-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--good);margin-right:.45rem;animation:pulse 2.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
@@ -375,7 +381,7 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
     </div>
     <div class="status-bar">
       <span class="status-dot"></span>
-      <span id="user-greeting" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;display:inline-block">Hi, User</span>
+      <span id="user-greeting" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;color:var(--text);font-size:12px;font-weight:500">Hi, User</span>
     </div>
   </nav>
 
