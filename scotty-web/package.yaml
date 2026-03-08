@@ -18,6 +18,7 @@ dependencies:
   - text
   - bytestring
   - process
+  - directory
 
 ghc-options:
   - -Wall
@@ -41,3 +42,4 @@ executables:
       - text
       - bytestring
       - process
+      - directory

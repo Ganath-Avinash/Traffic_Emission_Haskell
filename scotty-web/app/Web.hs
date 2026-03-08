@@ -4,10 +4,13 @@ module Main where
 
 import Web.Scotty
 import qualified Data.ByteString.Lazy as BL
-import Data.List (intercalate)
+import qualified Data.Text.Lazy as TL
+import Data.List (intercalate, isSuffixOf)
 import Data.Char (isSpace)
+import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import System.Environment (lookupEnv)
+import System.Directory (listDirectory)
 import Text.Read (readMaybe)
 
 main :: IO ()
@@ -15,7 +18,11 @@ main = do
   portEnv <- lookupEnv "PORT"
   let port = maybe 3000 id (portEnv >>= readMaybe)
 
-  putStrLn ("Starting Scotty server on port " ++ show port)
+  -- Discover all JSON files in the static folder
+  allFiles <- listDirectory "static"
+  let jsonFiles = filter (".json" `isSuffixOf`) allFiles
+  putStrLn $ "Found JSON files: " ++ show jsonFiles
+  putStrLn $ "Starting Scotty server on port " ++ show port
 
   scotty port $ do
 
@@ -30,26 +37,34 @@ main = do
     get "/dashboard.html" $
       file "static/dashboard.html"
 
-    -- Serve analysis JSON
-    get "/analysis" $ do
-      jsonData <- liftIO $ BL.readFile "static/analysis.json"
-      setHeader "Content-Type" "application/json; charset=utf-8"
-      setHeader "Access-Control-Allow-Origin" "*"
-      raw jsonData
+    -- Dynamically register routes for every JSON file in static/
+    forM_ jsonFiles $ \jsonFile -> do
+      let baseName    = take (length jsonFile - 5) jsonFile  -- strip ".json"
+          filePath    = "static/" ++ jsonFile
+          routeFile   = TL.pack $ "/" ++ jsonFile            -- e.g. /analysis.json
+          routeName   = TL.pack $ "/" ++ baseName            -- e.g. /analysis
+          routeApi    = TL.pack $ "/api/" ++ baseName        -- e.g. /api/analysis
 
-    -- Direct JSON file
-    get "/analysis.json" $ do
-      jsonData <- liftIO $ BL.readFile "static/analysis.json"
-      setHeader "Content-Type" "application/json; charset=utf-8"
-      setHeader "Access-Control-Allow-Origin" "*"
-      raw jsonData
+      -- /<name>.json
+      get (literal routeFile) $ do
+        jsonData <- liftIO $ BL.readFile filePath
+        setHeader "Content-Type" "application/json; charset=utf-8"
+        setHeader "Access-Control-Allow-Origin" "*"
+        raw jsonData
 
-    -- API endpoint
-    get "/api/analysis" $ do
-      jsonData <- liftIO $ BL.readFile "static/analysis.json"
-      setHeader "Content-Type" "application/json; charset=utf-8"
-      setHeader "Access-Control-Allow-Origin" "*"
-      raw jsonData
+      -- /<name>
+      get (literal routeName) $ do
+        jsonData <- liftIO $ BL.readFile filePath
+        setHeader "Content-Type" "application/json; charset=utf-8"
+        setHeader "Access-Control-Allow-Origin" "*"
+        raw jsonData
+
+      -- /api/<name>
+      get (literal routeApi) $ do
+        jsonData <- liftIO $ BL.readFile filePath
+        setHeader "Content-Type" "application/json; charset=utf-8"
+        setHeader "Access-Control-Allow-Origin" "*"
+        raw jsonData
 
 
 -- CSV → JSON (future use)
