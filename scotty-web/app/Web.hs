@@ -2,16 +2,20 @@
 
 module Main where
 
-import Web.Scotty (scottyOpts, get, file, literal, setHeader, raw, Options(..))
+import Web.Scotty
 import qualified Data.ByteString.Lazy as BL
-import Data.List (isSuffixOf, intercalate)
+import Data.List (intercalate, isSuffixOf)
 import Data.Char (isSpace)
 import Control.Monad.IO.Class (liftIO)
 import System.Environment (lookupEnv)
 import System.Directory (listDirectory)
 import Network.Wai.Handler.Warp (setHost, setPort, defaultSettings)
-import Text.Read (readMaybe)
+import Network.Wai (Application)
+import Web.Scotty.Trans (scottyOptsT, Options(..))
 import Data.String (fromString)
+import Text.Read (readMaybe)
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.Text.Lazy as TL
 
 main :: IO ()
 main = do
@@ -24,8 +28,8 @@ main = do
   putStrLn ("Serving JSON files: " ++ show jsonFiles)
 
   let opts = Options
-        { verbose  = 0
-        , settings = setPort port $ setHost (fromString "0.0.0.0") defaultSettings
+        { verbose = 0
+        , settings = setPort port $ setHost "0.0.0.0" defaultSettings
         }
 
   scottyOpts opts $ do
