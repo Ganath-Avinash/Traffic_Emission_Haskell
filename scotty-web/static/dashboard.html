@@ -1559,10 +1559,24 @@ function getSystemContext(){
   const d=RAW.filter(r=>r.year===ly);
   const avgC=(d.reduce((s,r)=>s+r.co2,0)/d.length).toFixed(2);
   const avgG=(d.reduce((s,r)=>s+r.greenScore,0)/d.length).toFixed(1);
-  return `I am analysing global transport emissions for the year ${ly}. 
-  The dataset contains ${COUNTRIES.length} countries. 
-  The global average CO2 per capita per day is ${avgC} kg. 
-  The global average green transport score is ${avgG}%.`;
+  
+  // Create a compressed payload of the data for the AI to read
+  const payload=d.map(r=>`${r.country}(${r.continent}):${r.co2.toFixed(2)}kg,${r.greenScore.toFixed(0)}%`).join(' | ');
+
+  return `You are the TransportSense AI Assistant. You MUST answer based ONLY on the provided dataset context. DO NOT hallucinate external data.
+
+Context Summary (${ly}):
+- Total Countries: ${COUNTRIES.length}
+- Global Avg CO2/capita/day: ${avgC} kg
+- Global Avg Green Transport Score: ${avgG}%
+
+Actual Dataset for ${ly} (Format — Country(Continent):CO2_per_capita_per_day,Green_Score_percentage):
+${payload}
+
+Rules:
+1. When asked for the "most polluted", find the country with the HIGHEST CO2. 
+2. When asked for "greenest", find the country with the HIGHEST Green Score.
+3. If a user asks about a city or country not in the list, tell them it's not in the dataset.`;
 }
 
 async function handleAIChat(e){
