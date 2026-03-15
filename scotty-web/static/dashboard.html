@@ -21,7 +21,7 @@ const fbApp = initializeApp({
 const fbAuth = getAuth(fbApp);
 onAuthStateChanged(fbAuth, user => {
   if (!user) {
-    window.location.href = 'index.html';
+    window.location.href = 'sign.html';
     return;
   }
   // User is authenticated — show the page
@@ -65,10 +65,16 @@ html.light-mode .hamburger{background:rgba(255,255,255,.95);border-color:rgba(0,
 html.light-mode .hamburger span{background:#111}
 html{font-size:14px}
 body{background:var(--bg);color:var(--text2);font-family:'Inter',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh;visibility:hidden}
-body::before{content:'';position:fixed;inset:0;background:
-  radial-gradient(ellipse 70% 60% at 15% 0%,rgba(255,255,255,.025) 0%,transparent 55%),
-  radial-gradient(ellipse 50% 40% at 85% 100%,rgba(255,255,255,.018) 0%,transparent 55%);
-  pointer-events:none;z-index:0}
+
+/* Particle canvas */
+#particle-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* Glow orbs */
+.glow-orb{position:fixed;border-radius:50%;pointer-events:none;filter:blur(120px);opacity:.08;z-index:0}
+.glow-orb-1{width:500px;height:500px;background:#7c3aed;top:-10%;left:-5%;animation:orbDrift 8s ease-in-out infinite}
+.glow-orb-2{width:400px;height:400px;background:#6366f1;bottom:-10%;right:-5%;animation:orbDrift 10s ease-in-out infinite 2s}
+.glow-orb-3{width:300px;height:300px;background:#a78bfa;top:40%;left:50%;animation:orbDrift 12s ease-in-out infinite 4s}
+@keyframes orbDrift{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
@@ -392,6 +398,14 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
 </head>
 <body>
 
+<!-- Glow Orbs -->
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+<div class="glow-orb glow-orb-3"></div>
+
+<!-- Particle Canvas -->
+<canvas id="particle-canvas"></canvas>
+
 <div id="loader">
   <div class="ld-title">TransportSense</div>
   <div class="ld-sub">LOADING GLOBAL DATASET</div>
@@ -431,7 +445,7 @@ input[type=range]::-moz-range-thumb:hover { transform: scale(1.2); }
         </div>
         <input type="checkbox" style="display:none;" onchange="toggleTheme(this)">
       </label>
-      <a href="index.html?logout=true" class="nav-item" style="text-decoration:none"><span class="nav-dot" style="background:var(--bad)"></span>Sign Out</a>
+      <a href="sign.html?logout=true" class="nav-item" style="text-decoration:none"><span class="nav-dot" style="background:var(--bad)"></span>Sign Out</a>
     </div>
     <div class="status-bar">
       <span class="status-dot"></span>
@@ -1802,6 +1816,42 @@ async function handleAIChat(e){
 }
 
 boot();
+
+/* ── PARTICLE SYSTEM ── */
+(function(){
+  const canvas=document.getElementById('particle-canvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,particles=[],mouse={x:-9999,y:-9999};
+  const COUNT=140,MAG=120,COLOR='#7c3aed',LERP=0.04,PSIZE=1.8,FIELD=8;
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  window.addEventListener('resize',resize);resize();
+  class P{
+    constructor(){this.reset();this.ox=this.x;this.oy=this.y;this.a=Math.random()*Math.PI*2;this.sp=0.3+Math.random()*0.4;this.sz=PSIZE*(0.5+Math.random());this.len=4+Math.random()*6;}
+    reset(){this.x=Math.random()*W;this.y=Math.random()*H;}
+    update(t){
+      this.ox+=Math.cos(this.a)*this.sp*1.2;this.oy+=Math.sin(this.a)*this.sp*1.2;
+      this.a+=(Math.random()-0.5)*0.1;
+      if(this.ox<-20)this.ox=W+20;if(this.ox>W+20)this.ox=-20;
+      if(this.oy<-20)this.oy=H+20;if(this.oy>H+20)this.oy=-20;
+      const dx=this.ox-mouse.x,dy=this.oy-mouse.y,d=Math.sqrt(dx*dx+dy*dy);
+      let tx=this.ox,ty=this.oy;
+      if(d<MAG&&d>0){const f=(1-d/MAG)*FIELD;tx+=(dx/d)*f*12;ty+=(dy/d)*f*12;}
+      this.x+=(tx-this.x)*LERP;this.y+=(ty-this.y)*LERP;
+      this.sz=PSIZE*(0.5+Math.random())*(0.8+0.2*Math.sin(t*0.003+this.a));
+    }
+    draw(){
+      const vx=this.x-this.ox,vy=this.y-this.oy,sp=Math.sqrt(vx*vx+vy*vy);
+      const a=Math.atan2(vy,vx),len=Math.min(this.len+sp*0.5,12);
+      ctx.save();ctx.translate(this.x,this.y);ctx.rotate(a);
+      ctx.beginPath();ctx.roundRect(-len/2,-this.sz/2,len,this.sz,this.sz/2);
+      ctx.fillStyle=COLOR;ctx.globalAlpha=0.3+Math.min(sp*0.05,0.4);ctx.fill();ctx.restore();
+    }
+  }
+  for(let i=0;i<COUNT;i++)particles.push(new P());
+  function anim(t){ctx.clearRect(0,0,W,H);particles.forEach(p=>{p.update(t);p.draw();});requestAnimationFrame(anim);}
+  requestAnimationFrame(anim);
+  document.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+})();
 </script>
 </body>
 </html>

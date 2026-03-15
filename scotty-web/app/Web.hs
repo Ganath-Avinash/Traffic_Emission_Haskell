@@ -26,12 +26,16 @@ main = do
 
   scotty port $ do
 
-    -- Login page
+    -- Landing page
     get "/" $
       file "static/index.html"
 
     get "/index.html" $
       file "static/index.html"
+
+    -- Sign in / Sign up page
+    get "/sign.html" $
+      file "static/sign.html"
 
     -- Dashboard
     get "/dashboard.html" $
