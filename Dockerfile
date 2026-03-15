@@ -1,32 +1,21 @@
-# Stage 1: Build
-FROM fpco/stack-build:lts AS builder
+FROM nginx:alpine
 
-WORKDIR /build/scotty-web
+# Copy static files to nginx's default serve directory
+COPY scotty-web/static /usr/share/nginx/html
 
-# Copy ONLY dependency files first (Docker caches this layer)
-COPY scotty-web/package.yaml .
-COPY scotty-web/stack.yaml .
-COPY scotty-web/stack.yaml.lock* .
-
-# Install dependencies (cached unless package.yaml changes)
-RUN stack setup --no-terminal
-RUN stack build --only-dependencies --no-terminal
-
-# Now copy source code and build the app
-COPY scotty-web/ .
-RUN stack build --copy-bins --no-terminal
-
-# Stage 2: Lightweight runtime
-FROM debian:bookworm-slim
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgmp10 ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-COPY --from=builder /root/.local/bin/scotty-web-exe .
-COPY scotty-web/static ./static
+# Custom nginx config to handle routing properly
+RUN echo 'server { \
+    listen 3000; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+    location ~* \\.json$ { \
+        add_header Content-Type "application/json; charset=utf-8"; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
 
-CMD ["./scotty-web-exe"]
+CMD ["nginx", "-g", "daemon off;"]
